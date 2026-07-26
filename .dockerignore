@@ -1,0 +1,24 @@
+.git
+.gitignore
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+.env
+.env.*
+!.env.production.example
+*.rar
+akuntansi-netlify
+.claude
+tests
+README*.md
+SETUP_*.md
+IMPLEMENTASI_*.md
+DEPLOY_*.md
+struktur folder aplikasi GEP.txt
+CARA DEPLOY.txt

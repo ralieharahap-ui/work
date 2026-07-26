@@ -1,0 +1,82 @@
+# ============================================================
+#  Aplikasi Sumber Biomassa PT GEP — deployment produksi
+#  Jalankan:
+#    docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+# ============================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gep-biomassa:latest
+    restart: unless-stopped
+    environment:
+      APP_NAME: "PT Geosys Energi Prima"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-gep_erp}
+      DB_USERNAME: ${DB_USERNAME:-gep}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      TRUSTED_PROXIES: "*"
+      SEED_ON_DEPLOY: ${SEED_ON_DEPLOY:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [gepnet]
+    # Untuk akses langsung tanpa domain/HTTPS, buka baris di bawah
+    # (mis. http://IP_SERVER:8000). Untuk HTTPS pakai service caddy.
+    # ports:
+    #   - "${APP_PORT:-8000}:80"
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-gep_erp}
+      MYSQL_USER: ${DB_USERNAME:-gep}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks: [gepnet]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # HTTPS otomatis untuk domain Anda (Let's Encrypt). Butuh domain diarahkan ke IP server.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+    networks: [gepnet]
+
+networks:
+  gepnet:
+
+volumes:
+  dbdata:
+  caddy_data:
+  caddy_config:

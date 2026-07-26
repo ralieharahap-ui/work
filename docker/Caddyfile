@@ -1,0 +1,11 @@
+# Caddy reverse proxy — HTTPS otomatis (Let's Encrypt) untuk domain Anda.
+# {$DOMAIN} & {$ADMIN_EMAIL} diambil dari environment (lihat docker-compose.prod.yml).
+
+{
+    email {$ADMIN_EMAIL}
+}
+
+{$DOMAIN} {
+    encode gzip zstd
+    reverse_proxy app:80
+}
