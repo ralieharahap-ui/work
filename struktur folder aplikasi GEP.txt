@@ -1,0 +1,55 @@
+D:\#Cangkang Sawit\Apps PT GEP Ralie build\
+│
+├── .env.example                          ← copy ke .env, isi kredensial
+├── vite.config.js
+│
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── AuthController.php        ← login, logout, register
+│   │   │   ├── DashboardController.php   ← statistik ringkas
+│   │   │   ├── ItemController.php        ← inventory + stok
+│   │   │   ├── InvoiceController.php     ← invoice + Wapu
+│   │   │   ├── SubscriptionController.php← billing recurring
+│   │   │   ├── BillingPlanController.php ← manajemen plan
+│   │   │   ├── AccountController.php     ← COA
+│   │   │   ├── JournalEntryController.php← jurnal manual
+│   │   │   ├── ReportController.php      ← trial balance + P&L
+│   │   │   ├── LetterController.php      ← surat + approval flow
+│   │   │   └── UserManagementController.php
+│   │   ├── Middleware/EnsureUserIsActive.php
+│   │   └── Requests/RegisterUserRequest.php
+│   ├── Models/  (18 model)
+│   └── Services/
+│       ├── StockService.php
+│       ├── InvoiceService.php            ← Wapu-aware recordPayment
+│       ├── BillingService.php
+│       └── PostingService.php            ← auto-journal engine
+│
+├── database/
+│   ├── migrations/  ← letakkan SQL dari sesi ini
+│   └── seeders/
+│       ├── DatabaseSeeder.php
+│       ├── RolePermissionSeeder.php      ← 5 role + 25 permission
+│       ├── OrganizationSeeder.php        ← org + 9 divisi + admin
+│       └── ChartOfAccountsSeeder.php     ← 17 akun COA
+│
+├── resources/
+│   ├── css/app.css
+│   ├── views/app.blade.php
+│   └── js/
+│       ├── app.jsx
+│       ├── Layouts/
+│       │   ├── AuthLayout.jsx            ← login/register frame
+│       │   └── AppLayout.jsx            ← sidebar + topbar
+│       └── Pages/
+│           ├── Auth/Login.jsx + Register.jsx
+│           ├── Dashboard/Index.jsx       ← 6 stat card + recent invoice
+│           ├── Inventory/Index.jsx       ← tabel + modal stok
+│           ├── Invoice/Index.jsx         ← filter status + modal bayar Wapu
+│           ├── Letters/Index.jsx         ← alur approve/tolak surat
+│           └── Books/TrialBalance.jsx    ← neraca saldo + balance check
+│
+└── routes/
+    ├── web.php                           ← semua route + middleware
+    └── console.php                       ← schedule otomatis
