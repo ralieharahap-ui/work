@@ -71,10 +71,12 @@ export default function Login() {
                         </form>
                     </div>
 
-                    <div className="mt-4 text-center text-xs text-slate-500">
-                        <p>Akun demo administrator:</p>
-                        <p className="text-slate-400 font-mono mt-1">admin@pt-gep.com / Admin@12345</p>
-                    </div>
+                    {import.meta.env.DEV && (
+                        <div className="mt-4 text-center text-xs text-slate-500">
+                            <p>Akun demo administrator (hanya tampil saat development):</p>
+                            <p className="text-slate-400 font-mono mt-1">admin@pt-gep.com / Admin@12345</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </>
