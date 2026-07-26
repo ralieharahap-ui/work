@@ -61,6 +61,25 @@ if [ "${SEED_ON_DEPLOY:-true}" = "true" ]; then
   fi
 fi
 
+# 3b) Set / reset password admin bila variabel ADMIN_PASSWORD diisi
+if [ -n "${ADMIN_PASSWORD}" ]; then
+  echo "==> Menerapkan ADMIN_PASSWORD untuk akun admin..."
+  php -r '
+    require "vendor/autoload.php";
+    $app = require "bootstrap/app.php";
+    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+    $email = getenv("ADMIN_EMAIL") ?: "admin@pt-gep.com";
+    $u = \App\Models\User::where("email", $email)->first();
+    if ($u) {
+      $u->password = getenv("ADMIN_PASSWORD");   // cast "hashed" otomatis meng-hash
+      $u->save();
+      echo "==> Password admin ({$email}) berhasil diperbarui\n";
+    } else {
+      echo "==> Akun {$email} tidak ditemukan, dilewati\n";
+    }
+  ' || echo "==> Gagal menerapkan ADMIN_PASSWORD (dilewati)"
+fi
+
 # 4) Cache produksi
 php artisan config:cache
 php artisan route:cache
