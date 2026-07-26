@@ -9,6 +9,13 @@ LISTEN_PORT="${PORT:-80}"
 sed -i "s/listen 80 default_server;/listen ${LISTEN_PORT} default_server;/; s/listen \[::\]:80 default_server;/listen [::]:${LISTEN_PORT} default_server;/" /etc/nginx/sites-available/default
 echo "==> Nginx listen di port ${LISTEN_PORT}"
 
+# 0b) Folder session persisten (agar user tidak logout tiap deploy)
+if [ -n "${SESSION_FILES}" ]; then
+  mkdir -p "${SESSION_FILES}"
+  chown -R www-data:www-data "${SESSION_FILES}"
+  echo "==> Session disimpan di ${SESSION_FILES}"
+fi
+
 DB_CONN="${DB_CONNECTION:-mysql}"
 
 if [ "${DB_CONN}" = "sqlite" ]; then

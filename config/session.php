@@ -60,7 +60,9 @@ return [
     |
     */
 
-    'files' => storage_path('framework/sessions'),
+    // SESSION_FILES memungkinkan session disimpan di volume persisten (mis. /data/sessions)
+    // agar pengguna tidak ter-logout setiap kali aplikasi di-deploy ulang.
+    'files' => env('SESSION_FILES', storage_path('framework/sessions')),
 
     /*
     |--------------------------------------------------------------------------
