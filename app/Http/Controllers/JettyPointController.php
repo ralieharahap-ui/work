@@ -64,9 +64,17 @@ class JettyPointController extends Controller
         ];
     }
 
+    /** Kolom price NOT NULL (default 0) — form boleh kosong, jadi null dinormalkan ke 0. */
+    private function normalize(array $data): array
+    {
+        $data['price'] = $data['price'] ?? 0;
+
+        return $data;
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate($this->rules());
+        $validated = $this->normalize($request->validate($this->rules()));
 
         $jetty = JettyPoint::create([
             ...$validated,
@@ -101,7 +109,7 @@ class JettyPointController extends Controller
     {
         $this->authorize('update', $jettyPoint);
 
-        $jettyPoint->update($request->validate($this->rules()));
+        $jettyPoint->update($this->normalize($request->validate($this->rules())));
 
         return redirect()->route('jetty-points.show', $jettyPoint->id)
             ->with('success', 'Data titik dermaga berhasil diperbarui');

@@ -62,6 +62,9 @@ class PalmOilSourceController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        // Kolom price NOT NULL (default 0) — form boleh kosong, null dinormalkan ke 0.
+        $validated['price'] = $validated['price'] ?? 0;
+
         $source = PalmOilSource::create([
             ...$validated,
             'organization_id' => auth()->user()->organization_id,
@@ -110,6 +113,8 @@ class PalmOilSourceController extends Controller
             'price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
+
+        $validated['price'] = $validated['price'] ?? 0;
 
         $palmOilSource->update($validated);
 

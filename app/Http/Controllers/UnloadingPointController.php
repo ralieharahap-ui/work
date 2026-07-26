@@ -65,9 +65,18 @@ class UnloadingPointController extends Controller
         ];
     }
 
+    /** Kolom price & has_jetty NOT NULL — form boleh kosong, jadi null dinormalkan. */
+    private function normalize(array $data): array
+    {
+        $data['price']     = $data['price'] ?? 0;
+        $data['has_jetty'] = $data['has_jetty'] ?? false;
+
+        return $data;
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate($this->rules());
+        $validated = $this->normalize($request->validate($this->rules()));
 
         $point = UnloadingPoint::create([
             ...$validated,
@@ -102,7 +111,7 @@ class UnloadingPointController extends Controller
     {
         $this->authorize('update', $unloadingPoint);
 
-        $unloadingPoint->update($request->validate($this->rules()));
+        $unloadingPoint->update($this->normalize($request->validate($this->rules())));
 
         return redirect()->route('unloading-points.show', $unloadingPoint->id)
             ->with('success', 'Data titik bongkar berhasil diperbarui');
