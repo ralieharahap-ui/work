@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -33,6 +34,9 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
             ],
+            'pendingUsersCount' => fn () => ($user && $user->hasRole('super_admin'))
+                ? User::where('organization_id', $user->organization_id)->where('is_active', false)->count()
+                : 0,
         ];
     }
 }

@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    HomeIcon, MapPinIcon, TruckIcon, LifebuoyIcon, CalculatorIcon,
+    HomeIcon, MapPinIcon, TruckIcon, LifebuoyIcon, CalculatorIcon, UsersIcon,
     ArrowRightOnRectangleIcon, CheckCircleIcon, XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
@@ -11,6 +11,7 @@ const nav = [
     { label: 'Titik Bongkar',    href: '/unloading-points',   icon: TruckIcon,      perm: 'inventory.view' },
     { label: 'Titik Dermaga',    href: '/jetty-points',       icon: LifebuoyIcon,   perm: 'inventory.view' },
     { label: 'Kalkulasi Proyek', href: '/project-calculator', icon: CalculatorIcon, perm: 'inventory.view' },
+    { label: 'Manajemen User',   href: '/admin/users',        icon: UsersIcon,      role: 'super_admin' },
 ];
 
 function Flash() {
@@ -42,7 +43,7 @@ function Flash() {
 }
 
 export default function AppLayout({ children, title }) {
-    const { auth } = usePage().props;
+    const { auth, pendingUsersCount } = usePage().props;
     const user = auth?.user;
     const permissions = auth?.permissions ?? [];
     const roles = auth?.roles ?? [];
@@ -90,7 +91,12 @@ export default function AppLayout({ children, title }) {
                             >
                                 {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-blue-400" />}
                                 <item.icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
-                                {item.label}
+                                <span className="flex-1">{item.label}</span>
+                                {item.href === '/admin/users' && pendingUsersCount > 0 && (
+                                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center">
+                                        {pendingUsersCount}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}

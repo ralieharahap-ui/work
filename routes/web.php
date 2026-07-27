@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PalmOilSourceController;
@@ -61,5 +62,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/project-calculator',  [ProjectCalculatorController::class, 'index'])->name('project-calculator.index');
         Route::post('/project-calculator', [ProjectCalculatorController::class, 'store'])->middleware('permission:inventory.create')->name('project-calculator.store');
         Route::delete('/project-calculator/{scenario}', [ProjectCalculatorController::class, 'destroy'])->middleware('permission:inventory.delete')->name('project-calculator.destroy');
+    });
+
+    // Manajemen User (persetujuan akun signup) — khusus super_admin
+    Route::middleware('role:super_admin')->prefix('admin/users')->group(function () {
+        Route::get('/',                  [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::patch('/{user}/activate', [AdminUserController::class, 'activate'])->name('admin.users.activate');
+        Route::patch('/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('admin.users.deactivate');
     });
 });
