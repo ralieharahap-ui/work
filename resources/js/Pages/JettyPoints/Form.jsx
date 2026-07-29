@@ -14,7 +14,7 @@ export default function JettyPointForm({ form }) {
                         <input className="input" value={form.data.name} onChange={set('name')} placeholder="Contoh: Dermaga Soasio Tidore" required />
                         <Err k="name" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Pengelola / Operator</label>
                             <input className="input" value={form.data.operator} onChange={set('operator')} placeholder="PT Pelindo" />
@@ -24,7 +24,7 @@ export default function JettyPointForm({ form }) {
                             <input className="input" value={form.data.draft} onChange={set('draft')} placeholder="-6 m LWS" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Kapasitas Sandar Tongkang</label>
                             <input type="number" step="0.01" className="input" value={form.data.capacity} onChange={set('capacity')} placeholder="5000" />
@@ -50,7 +50,7 @@ export default function JettyPointForm({ form }) {
             <div>
                 <h3 className="section-title">Lokasi & Koordinat</h3>
                 <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Latitude *</label>
                             <input type="number" step="0.00000001" className="input" value={form.data.latitude} onChange={set('latitude')} placeholder="0.6900" required />
@@ -62,7 +62,7 @@ export default function JettyPointForm({ form }) {
                             <Err k="longitude" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Provinsi *</label>
                             <input className="input" value={form.data.province} onChange={set('province')} placeholder="Maluku Utara" required />
@@ -87,7 +87,7 @@ export default function JettyPointForm({ form }) {
 
             <div>
                 <h3 className="section-title">Penanggung Jawab (PIC)</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="label">Nama PIC</label>
                         <input className="input" value={form.data.pic_name} onChange={set('pic_name')} placeholder="Budi Santoso" />

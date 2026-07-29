@@ -200,9 +200,20 @@ export default function MapViewer({
         }
     }, [sources, unloadingPoints, jettyPoints, showRoutes, clickable, center, zoom]);
 
+    // Sesuaikan ukuran peta saat wadah berubah (rotasi layar, buka/tutup menu, resize jendela).
+    // Tanpa ini Leaflet memakai ukuran lama sehingga ubin & marker meleset.
+    useEffect(() => {
+        if (!mapContainer.current) return;
+        const ro = new ResizeObserver(() => map.current?.invalidateSize({ animate: false }));
+        ro.observe(mapContainer.current);
+        const onOrient = () => setTimeout(() => map.current?.invalidateSize({ animate: false }), 250);
+        window.addEventListener('orientationchange', onOrient);
+        return () => { ro.disconnect(); window.removeEventListener('orientationchange', onOrient); };
+    }, []);
+
     return (
-        <div className="w-full rounded-xl overflow-hidden border border-slate-700 ring-1 ring-black/20 animate-pop-in">
-            <div ref={mapContainer} className="w-full h-[380px] sm:h-[460px] lg:h-[520px]" />
+        <div className="w-full rounded-xl overflow-hidden border border-slate-700 ring-1 ring-black/20 animate-fade-in">
+            <div ref={mapContainer} className="w-full h-[clamp(280px,52vh,620px)]" />
         </div>
     );
 }

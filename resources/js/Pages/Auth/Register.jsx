@@ -15,7 +15,7 @@ export default function Register({ divisions = [] }) {
     return (
         <>
             <Head title="Daftar Akun" />
-            <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4 py-10">
+            <div className="app-viewport flex items-start sm:items-center justify-center bg-slate-900 px-4 py-8 overflow-y-auto">
                 <div className="w-full max-w-md">
                     <div className="text-center mb-6">
                         <div className="w-11 h-11 mx-auto rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm mb-3">
@@ -58,7 +58,7 @@ export default function Register({ divisions = [] }) {
                                 {form.errors.email && <p className="text-red-400 text-sm mt-1">{form.errors.email}</p>}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="label">Password *</label>
                                     <input
@@ -88,7 +88,7 @@ export default function Register({ divisions = [] }) {
                                 <p className="text-slate-500 text-xs -mt-2">Minimal 8 karakter, mengandung huruf besar dan angka.</p>
                             )}
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="label">Divisi *</label>
                                     <select
@@ -120,7 +120,7 @@ export default function Register({ divisions = [] }) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="label">NIK / ID Pegawai</label>
                                     <input

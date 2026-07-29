@@ -35,7 +35,7 @@ export default function JettyPointsIndex({ jetties, can }) {
 
                 <div className="card !p-0 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px]">
+                        <table className="w-full md:min-w-[900px] table-stack">
                             <thead>
                                 <tr className="bg-slate-900/40 border-b border-slate-700/70">
                                     <th className="table-header">Nama Dermaga</th>
@@ -59,20 +59,20 @@ export default function JettyPointsIndex({ jetties, can }) {
                                             </Link>
                                             {j.operator && <p className="text-slate-500 text-xs font-normal ml-6">{j.operator}</p>}
                                         </td>
-                                        <td className="table-cell text-slate-400">
+                                        <td data-label="Lokasi" className="table-cell text-slate-400">
                                             <span className="inline-flex items-center gap-1.5"><MapPinIcon className="w-4 h-4 text-slate-500 shrink-0" />{j.city}, {j.province}</span>
                                         </td>
-                                        <td className="table-cell text-right font-semibold tabular text-slate-200">
+                                        <td data-label="Kapasitas" className="table-cell text-right font-semibold tabular text-slate-200">
                                             {j.capacity ? <>{fmt(j.capacity)} <span className="text-slate-500 font-normal">{j.unit}</span></> : '—'}
                                         </td>
-                                        <td className="table-cell text-right tabular text-slate-200">
+                                        <td data-label="Biaya incl. PPN" className="table-cell text-right tabular text-slate-200">
                                             {j.price > 0 ? <>{rp(j.price_incl_ppn)}<span className="text-slate-500 text-xs">/{j.unit}</span></> : '—'}
                                         </td>
-                                        <td className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(j.updated_at)}</td>
-                                        <td className="table-cell">
+                                        <td data-label="Update" className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(j.updated_at)}</td>
+                                        <td data-label="Status" className="table-cell">
                                             <span className={`badge ${j.status === 'active' ? 'badge-green' : 'badge-slate'}`}>{j.status === 'active' ? 'Aktif' : 'Nonaktif'}</span>
                                         </td>
-                                        <td className="table-cell">
+                                        <td data-label="Aksi" className="table-cell">
                                             <div className="flex items-center justify-end gap-1">
                                                 {can?.view && <Link href={route('jetty-points.show', j.id)} className="p-1.5 rounded-md text-slate-400 hover:text-blue-300 hover:bg-slate-700/50 transition-colors" title="Lihat"><EyeIcon className="w-4 h-4" /></Link>}
                                                 {can?.edit && <Link href={route('jetty-points.edit', j.id)} className="p-1.5 rounded-md text-slate-400 hover:text-amber-300 hover:bg-slate-700/50 transition-colors" title="Edit"><PencilSquareIcon className="w-4 h-4" /></Link>}

@@ -188,7 +188,7 @@ export default function ProjectCalculator({ sources = [], customers = [], jettie
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <Field label="Handling" value={f.handling} onChange={set('handling')} placeholder="30000" suffix="/t" />
                                     <Field label="Muat" value={f.muat} onChange={set('muat')} placeholder="40000" suffix="/t" />
                                     <Field label="Bongkar" value={f.bongkar} onChange={set('bongkar')} placeholder="50000" suffix="/t" />
@@ -215,7 +215,7 @@ export default function ProjectCalculator({ sources = [], customers = [], jettie
                                 {r.profit ? <CheckCircleIcon className="w-[18px] h-[18px] text-emerald-400" /> : <ExclamationTriangleIcon className="w-[18px] h-[18px] text-red-400" />}
                                 Hasil Cost &amp; Benefit
                             </h3>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <p className="text-slate-400 text-xs">Total Biaya ({r.vol} ton)</p>
                                     <p className="text-red-400 text-xl font-bold tabular">{rp(r.totalCost)}</p>
@@ -308,7 +308,7 @@ export default function ProjectCalculator({ sources = [], customers = [], jettie
                         <p className="text-slate-500 text-sm py-6 text-center">Belum ada skenario tersimpan. Isi parameter lalu klik “Simpan”.</p>
                     ) : (
                         <div className="overflow-x-auto -mx-2">
-                            <table className="w-full min-w-[860px]">
+                            <table className="w-full md:min-w-[860px] table-stack">
                                 <thead>
                                     <tr className="border-b border-slate-700/70">
                                         <th className="table-header">Nama Skenario</th>
@@ -327,16 +327,16 @@ export default function ProjectCalculator({ sources = [], customers = [], jettie
                                                 {s.name}
                                                 {s.user && <p className="text-slate-500 text-xs font-normal">oleh {s.user.name}</p>}
                                             </td>
-                                            <td className="table-cell text-right tabular text-slate-300">{fmtNum(s.volume)} t</td>
-                                            <td className="table-cell text-right tabular text-red-400">{rp(s.total_cost)}</td>
-                                            <td className="table-cell text-right tabular text-blue-400">{rp(s.total_revenue)}</td>
-                                            <td className="table-cell text-right">
+                                            <td data-label="Volume" className="table-cell text-right tabular text-slate-300">{fmtNum(s.volume)} t</td>
+                                            <td data-label="Total Biaya" className="table-cell text-right tabular text-red-400">{rp(s.total_cost)}</td>
+                                            <td data-label="Pendapatan" className="table-cell text-right tabular text-blue-400">{rp(s.total_revenue)}</td>
+                                            <td data-label="Margin" className="table-cell text-right">
                                                 <span className={`badge tabular ${Number(s.margin_pct) >= Number(s.target_margin) ? 'badge-green' : Number(s.total_margin) >= 0 ? 'badge-amber' : 'badge-red'}`}>
                                                     {rp(s.total_margin)} · {Number(s.margin_pct).toFixed(1)}%
                                                 </span>
                                             </td>
-                                            <td className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(s.created_at)}</td>
-                                            <td className="table-cell">
+                                            <td data-label="Dibuat" className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(s.created_at)}</td>
+                                            <td data-label="Aksi" className="table-cell">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button onClick={() => loadScenario(s)} className="p-1.5 rounded-md text-slate-400 hover:text-blue-300 hover:bg-slate-700/50 transition-colors" title="Muat ke kalkulator">
                                                         <ArrowUpTrayIcon className="w-4 h-4 rotate-180" />

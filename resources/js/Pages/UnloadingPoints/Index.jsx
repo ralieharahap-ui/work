@@ -41,7 +41,7 @@ export default function UnloadingPointsIndex({ points, can }) {
 
                 <div className="card !p-0 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[980px]">
+                        <table className="w-full md:min-w-[980px] table-stack">
                             <thead>
                                 <tr className="bg-slate-900/40 border-b border-slate-700/70">
                                     <th className="table-header">Nama Titik</th>
@@ -71,30 +71,30 @@ export default function UnloadingPointsIndex({ points, can }) {
                                             </Link>
                                             {p.customer_name && <p className="text-slate-500 text-xs font-normal ml-4">{p.customer_name}</p>}
                                         </td>
-                                        <td className="table-cell text-slate-400">
+                                        <td data-label="Lokasi" className="table-cell text-slate-400">
                                             <span className="inline-flex items-center gap-1.5">
                                                 <MapPinIcon className="w-4 h-4 text-slate-500 shrink-0" />
                                                 {p.city}, {p.province}
                                             </span>
                                         </td>
-                                        <td className="table-cell text-right font-semibold tabular text-slate-200">
+                                        <td data-label="Kapasitas" className="table-cell text-right font-semibold tabular text-slate-200">
                                             {p.capacity ? <>{fmt(p.capacity)} <span className="text-slate-500 font-normal">{p.unit}</span></> : '—'}
                                         </td>
-                                        <td className="table-cell text-right tabular text-slate-200">
+                                        <td data-label="Harga incl. PPN" className="table-cell text-right tabular text-slate-200">
                                             {p.price > 0 ? <>{rp(p.price_incl_ppn)}<span className="text-slate-500 text-xs">/{p.unit}</span></> : '—'}
                                         </td>
-                                        <td className="table-cell">
+                                        <td data-label="Dermaga" className="table-cell">
                                             {p.has_jetty
                                                 ? <span className="badge badge-blue">⚓ {p.jetty_name || 'Ada'}</span>
                                                 : <span className="text-slate-500 text-xs">—</span>}
                                         </td>
-                                        <td className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(p.updated_at)}</td>
-                                        <td className="table-cell">
+                                        <td data-label="Update" className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(p.updated_at)}</td>
+                                        <td data-label="Status" className="table-cell">
                                             <span className={`badge ${p.status === 'active' ? 'badge-green' : 'badge-slate'}`}>
                                                 {p.status === 'active' ? 'Aktif' : 'Nonaktif'}
                                             </span>
                                         </td>
-                                        <td className="table-cell">
+                                        <td data-label="Aksi" className="table-cell">
                                             <div className="flex items-center justify-end gap-1">
                                                 {can?.view && (
                                                     <Link href={route('unloading-points.show', p.id)} className="p-1.5 rounded-md text-slate-400 hover:text-red-300 hover:bg-slate-700/50 transition-colors" title="Lihat">

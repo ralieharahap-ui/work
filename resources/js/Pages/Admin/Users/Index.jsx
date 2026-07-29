@@ -77,7 +77,7 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
 
                 <div className="card !p-0 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[820px]">
+                        <table className="w-full md:min-w-[820px] table-stack">
                             <thead>
                                 <tr className="bg-slate-900/40 border-b border-slate-700/70">
                                     <th className="table-header">Nama</th>
@@ -103,20 +103,20 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
                                             {u.name}
                                             <p className="text-slate-500 text-xs font-normal">{u.email}</p>
                                         </td>
-                                        <td className="table-cell text-slate-400">{u.division?.name ?? '—'}</td>
-                                        <td className="table-cell text-slate-400">{hierarchyLabel[u.hierarchy] ?? u.hierarchy ?? '—'}</td>
-                                        <td className="table-cell text-slate-400">
+                                        <td data-label="Divisi" className="table-cell text-slate-400">{u.division?.name ?? '—'}</td>
+                                        <td data-label="Jenjang" className="table-cell text-slate-400">{hierarchyLabel[u.hierarchy] ?? u.hierarchy ?? '—'}</td>
+                                        <td data-label="Role" className="table-cell text-slate-400">
                                             {(u.roles ?? []).map((r) => (
                                                 <span key={r.id} className="badge badge-slate mr-1 capitalize">{r.name.replace('_', ' ')}</span>
                                             ))}
                                         </td>
-                                        <td className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(u.created_at)}</td>
-                                        <td className="table-cell">
+                                        <td data-label="Terdaftar" className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(u.created_at)}</td>
+                                        <td data-label="Status" className="table-cell">
                                             <span className={`badge ${u.is_active ? 'badge-green' : 'badge-amber'}`}>
                                                 {u.is_active ? 'Aktif' : 'Menunggu'}
                                             </span>
                                         </td>
-                                        <td className="table-cell">
+                                        <td data-label="Aksi" className="table-cell">
                                             <div className="flex items-center justify-end gap-1">
                                                 {!u.is_active && (
                                                     <button

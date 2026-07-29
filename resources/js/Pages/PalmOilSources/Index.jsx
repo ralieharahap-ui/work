@@ -39,7 +39,7 @@ export default function PalmOilSourcesIndex({ sources, filters, can }) {
 
                 <div className="card !p-0 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px]">
+                        <table className="w-full md:min-w-[900px] table-stack">
                             <thead>
                                 <tr className="bg-slate-900/40 border-b border-slate-700/70">
                                     <th className="table-header">Nama Sumber</th>
@@ -69,28 +69,28 @@ export default function PalmOilSourcesIndex({ sources, filters, can }) {
                                                 </Link>
                                                 {source.supplier_name && <p className="text-slate-500 text-xs font-normal">{source.supplier_name}</p>}
                                             </td>
-                                            <td className="table-cell text-slate-400">
+                                            <td data-label="Lokasi" className="table-cell text-slate-400">
                                                 <span className="inline-flex items-center gap-1.5">
                                                     <MapPinIcon className="w-4 h-4 text-slate-500 shrink-0" />
                                                     {source.city}, {source.province}
                                                 </span>
                                             </td>
-                                            <td className={`table-cell text-right font-semibold tabular ${low ? 'text-red-400' : 'text-emerald-400'}`}>
+                                            <td data-label="Stok" className={`table-cell text-right font-semibold tabular ${low ? 'text-red-400' : 'text-emerald-400'}`}>
                                                 <span className="inline-flex items-center justify-end gap-1.5">
                                                     {low && <ExclamationTriangleIcon className="w-4 h-4" />}
                                                     {fmt(source.stock_volume)} <span className="text-slate-500 font-normal">{source.unit}</span>
                                                 </span>
                                             </td>
-                                            <td className="table-cell text-right tabular text-slate-200">
+                                            <td data-label="Harga incl. PPN" className="table-cell text-right tabular text-slate-200">
                                                 {source.price > 0 ? <>{rp(source.price_incl_ppn)}<span className="text-slate-500 text-xs">/{source.unit}</span></> : '—'}
                                             </td>
-                                            <td className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(source.updated_at)}</td>
-                                            <td className="table-cell">
+                                            <td data-label="Update" className="table-cell text-slate-400 text-xs whitespace-nowrap">{tgl(source.updated_at)}</td>
+                                            <td data-label="Status" className="table-cell">
                                                 <span className={`badge ${source.status === 'active' ? 'badge-green' : 'badge-slate'}`}>
                                                     {source.status === 'active' ? 'Aktif' : 'Nonaktif'}
                                                 </span>
                                             </td>
-                                            <td className="table-cell">
+                                            <td data-label="Aksi" className="table-cell">
                                                 <div className="flex items-center justify-end gap-1">
                                                     {can?.view && (
                                                         <Link href={route('palm-oil-sources.show', source.id)}

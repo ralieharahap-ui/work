@@ -43,6 +43,45 @@
     .tabular {
         font-variant-numeric: tabular-nums;
     }
+
+    /* ── Dukungan lintas perangkat (laptop, monitor, tablet, iOS & Android) ── */
+
+    /* Tinggi layar yang benar di browser mobile (bar alamat menyusut/muncul) */
+    .app-viewport {
+        height: 100vh;              /* fallback */
+        height: 100svh;
+        height: 100dvh;
+    }
+
+    /* Cegah scroll horizontal di seluruh halaman */
+    html, body { overflow-x: hidden; max-width: 100%; }
+
+    /* Hilangkan kotak abu-abu saat menyentuh elemen di Android/iOS */
+    * { -webkit-tap-highlight-color: transparent; }
+
+    /* iOS otomatis zoom bila font input < 16px — kunci minimal 16px di layar sentuh */
+    @media (max-width: 767px) {
+        input, select, textarea { font-size: 16px !important; }
+    }
+
+    /* Target sentuh nyaman (pedoman iOS/Android ≥ 44px) */
+    @media (pointer: coarse) {
+        button, [role="button"], a.btn-primary, a.btn-secondary, a.btn-danger,
+        .btn-primary, .btn-secondary, .btn-danger { min-height: 44px; }
+    }
+
+    /* Momentum scroll ala native + jangan “tarik” halaman induk */
+    .overflow-x-auto, .overflow-y-auto {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* Media & tabel tidak pernah melebihi wadahnya */
+    img, svg, video, canvas { max-width: 100%; height: auto; }
+
+    /* Judul & angka besar menyesuaikan lebar layar */
+    .fluid-title { font-size: clamp(1rem, 2.6vw, 1.25rem); }
+    .fluid-stat  { font-size: clamp(1.25rem, 4.4vw, 1.6rem); }
 }
 
 @layer components {
@@ -81,7 +120,7 @@
     }
 
     .card {
-        @apply bg-slate-800/70 border border-slate-700/80 rounded-xl p-5 sm:p-6 shadow-card
+        @apply bg-slate-800/70 border border-slate-700/80 rounded-xl p-4 sm:p-5 lg:p-6 shadow-card
                backdrop-blur-[2px];
     }
     .card-hover {
@@ -108,6 +147,63 @@
     .section-title {
         @apply text-white font-semibold text-sm flex items-center gap-2 mb-4 pb-3 border-b border-slate-700/70;
     }
+}
+
+/* ── Tabel responsif: baris berubah jadi kartu di HP ───────────────────
+   Pakai <table class="table-stack"> dan beri data-label pada tiap <td>. */
+@media (max-width: 767px) {
+    .table-stack { min-width: 0 !important; display: block; }
+    .table-stack thead { display: none; }
+    .table-stack tbody { display: block; }
+
+    .table-stack tr {
+        display: block;
+        border: 1px solid theme('colors.slate.700 / 70%');
+        border-radius: .75rem;
+        background: theme('colors.slate.900 / 40%');
+        padding: .35rem .25rem;
+        margin-bottom: .7rem;
+    }
+    .table-stack tr:last-child { margin-bottom: 0; }
+
+    .table-stack td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .9rem;
+        width: 100%;
+        padding: .45rem .75rem !important;
+        text-align: right !important;
+        border: 0;
+    }
+    .table-stack td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        color: theme('colors.slate.500');
+        font-size: .68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        text-align: left;
+    }
+    /* Kolom pertama tampil sebagai judul kartu */
+    .table-stack td:first-child {
+        display: block;
+        text-align: left !important;
+        font-size: .95rem;
+        padding-bottom: .5rem !important;
+        margin-bottom: .25rem;
+        border-bottom: 1px dashed theme('colors.slate.700 / 60%');
+    }
+    .table-stack td:first-child::before { display: none; }
+
+    /* Kolom aksi: tombol dirapatkan ke kanan */
+    .table-stack td[data-label="Aksi"] { justify-content: flex-end; padding-top: .6rem !important; }
+    .table-stack td[data-label="Aksi"]::before { margin-right: auto; }
+
+    /* Baris "tidak ada data" tetap satu blok penuh */
+    .table-stack td[colspan] { display: block; text-align: center !important; }
+    .table-stack td[colspan]::before { display: none; }
 }
 
 /* ── Leaflet: sesuaikan popup & kontrol dengan tema gelap ── */

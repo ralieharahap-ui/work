@@ -11,7 +11,7 @@ export default function Login() {
     return (
         <>
             <Head title="Masuk" />
-            <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+            <div className="app-viewport flex items-center justify-center bg-slate-900 px-4 py-8 overflow-y-auto">
                 <div className="w-full max-w-sm">
                     <div className="text-center mb-6">
                         <h1 className="text-white font-bold text-lg">PT Geosys Energi Prima</h1>

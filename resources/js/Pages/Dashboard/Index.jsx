@@ -128,7 +128,7 @@ export default function Dashboard({ palm_sources = [], unloading_points = [], je
                         <p className="text-slate-500 text-sm py-6 text-center">Belum ada data.</p>
                     ) : (
                         <div className="overflow-x-auto -mx-2">
-                            <table className="w-full min-w-[560px]">
+                            <table className="w-full md:min-w-[560px] table-stack">
                                 <thead>
                                     <tr className="border-b border-slate-700/70">
                                         <th className="table-header">Nama Sumber</th>
@@ -151,11 +151,11 @@ export default function Dashboard({ palm_sources = [], unloading_points = [], je
                                                         {s.name}
                                                     </Link>
                                                 </td>
-                                                <td className="table-cell text-slate-400">{s.city}, {s.province}</td>
-                                                <td className={`table-cell text-right font-semibold tabular ${low ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                <td data-label="Lokasi" className="table-cell text-slate-400">{s.city}, {s.province}</td>
+                                                <td data-label="Stok" className={`table-cell text-right font-semibold tabular ${low ? 'text-red-400' : 'text-emerald-400'}`}>
                                                     {fmtNum(s.stock_volume)} <span className="text-slate-500 font-normal">{s.unit}</span>
                                                 </td>
-                                                <td className="table-cell">
+                                                <td data-label="Status" className="table-cell">
                                                     <span className={`badge ${low ? 'badge-red' : 'badge-green'}`}>
                                                         {low ? 'Stok Rendah' : 'Aman'}
                                                     </span>
