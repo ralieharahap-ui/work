@@ -43,6 +43,7 @@ class ProjectCalculatorController extends Controller
             'muat'           => 'required|numeric|min:0',
             'bongkar'        => 'required|numeric|min:0',
             'price_customer' => 'required|numeric|min:0',
+            'is_wapu'        => 'boolean',
             'target_margin'  => 'required|numeric|min:0|max:100',
             'total_cost'     => 'required|numeric',
             'total_revenue'  => 'required|numeric',
@@ -53,6 +54,7 @@ class ProjectCalculatorController extends Controller
 
         CalculationScenario::create([
             ...$validated,
+            'is_wapu'         => $validated['is_wapu'] ?? false,
             'organization_id' => auth()->user()->organization_id,
             'user_id'         => auth()->id(),
         ]);

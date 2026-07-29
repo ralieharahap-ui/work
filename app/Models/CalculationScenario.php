@@ -14,7 +14,7 @@ class CalculationScenario extends Model
     protected $fillable = [
         'organization_id', 'user_id', 'name',
         'volume', 'price_cangkang', 'transport', 'via_water', 'tongkang',
-        'handling', 'muat', 'bongkar', 'price_customer', 'target_margin',
+        'handling', 'muat', 'bongkar', 'price_customer', 'is_wapu', 'target_margin',
         'total_cost', 'total_revenue', 'total_margin', 'margin_pct', 'notes',
     ];
 
@@ -28,6 +28,7 @@ class CalculationScenario extends Model
         'muat'           => 'decimal:2',
         'bongkar'        => 'decimal:2',
         'price_customer' => 'decimal:2',
+        'is_wapu'        => 'boolean',
         'target_margin'  => 'decimal:2',
         'total_cost'     => 'decimal:2',
         'total_revenue'  => 'decimal:2',
