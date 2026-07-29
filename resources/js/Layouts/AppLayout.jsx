@@ -124,12 +124,14 @@ export default function AppLayout({ children, title }) {
     const SidebarContent = (
         <>
             <div className="px-4 sm:px-5 h-16 flex items-center gap-3 border-b border-slate-800/80 shrink-0">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm shrink-0 transition-transform duration-300 hover:scale-110 hover:rotate-3">
-                    <span className="text-white font-bold text-sm">GEP</span>
-                </div>
+                <img
+                    src="/images/logo-gep.png"
+                    alt="PT Geosys Energi Prima"
+                    className="w-10 h-10 object-contain shrink-0 transition-transform duration-300 hover:scale-110 drop-shadow-[0_2px_6px_rgba(15,140,189,0.35)]"
+                />
                 <div className="min-w-0 flex-1">
                     <p className="text-white font-semibold text-sm leading-tight truncate">PT Geosys Energi Prima</p>
-                    <p className="text-slate-500 text-[11px] leading-tight">ERP System</p>
+                    <p className="text-slate-500 text-[10px] leading-tight truncate">Database Sumber Biomassa by Ralie©2026</p>
                 </div>
                 <button
                     onClick={() => setDrawerOpen(false)}
