@@ -9,6 +9,9 @@ use Inertia\Response;
 
 class JettyPointController extends Controller
 {
+    /** Pesan konfirmasi setelah data disimpan (ditampilkan sebagai toast di halaman list). */
+    private const PESAN_SUKSES = 'Terima kasih, data Anda berhasil diinput. Silakan cek kesesuaian data pada tampilan menu Dashboard.';
+
     public function index(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
@@ -76,14 +79,14 @@ class JettyPointController extends Controller
     {
         $validated = $this->normalize($request->validate($this->rules()));
 
-        $jetty = JettyPoint::create([
+        JettyPoint::create([
             ...$validated,
             'organization_id' => auth()->user()->organization_id,
             'status'          => 'active',
         ]);
 
-        return redirect()->route('jetty-points.show', $jetty->id)
-            ->with('success', 'Titik dermaga berhasil ditambahkan');
+        return redirect()->route('jetty-points.index')
+            ->with('success', self::PESAN_SUKSES);
     }
 
     public function show(JettyPoint $jettyPoint): Response
@@ -111,8 +114,8 @@ class JettyPointController extends Controller
 
         $jettyPoint->update($this->normalize($request->validate($this->rules())));
 
-        return redirect()->route('jetty-points.show', $jettyPoint->id)
-            ->with('success', 'Data titik dermaga berhasil diperbarui');
+        return redirect()->route('jetty-points.index')
+            ->with('success', self::PESAN_SUKSES);
     }
 
     public function destroy(JettyPoint $jettyPoint)

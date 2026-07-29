@@ -9,6 +9,9 @@ use Inertia\Response;
 
 class PalmOilSourceController extends Controller
 {
+    /** Pesan konfirmasi setelah data disimpan (ditampilkan sebagai toast di halaman list). */
+    private const PESAN_SUKSES = 'Terima kasih, data Anda berhasil diinput. Silakan cek kesesuaian data pada tampilan menu Dashboard.';
+
     public function index(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
@@ -65,14 +68,14 @@ class PalmOilSourceController extends Controller
         // Kolom price NOT NULL (default 0) — form boleh kosong, null dinormalkan ke 0.
         $validated['price'] = $validated['price'] ?? 0;
 
-        $source = PalmOilSource::create([
+        PalmOilSource::create([
             ...$validated,
             'organization_id' => auth()->user()->organization_id,
             'status' => 'active',
         ]);
 
-        return redirect()->route('palm-oil-sources.show', $source->id)
-            ->with('success', 'Sumber cangkang sawit berhasil ditambahkan');
+        return redirect()->route('palm-oil-sources.index')
+            ->with('success', self::PESAN_SUKSES);
     }
 
     public function show(PalmOilSource $palmOilSource): Response
@@ -118,8 +121,8 @@ class PalmOilSourceController extends Controller
 
         $palmOilSource->update($validated);
 
-        return redirect()->route('palm-oil-sources.show', $palmOilSource->id)
-            ->with('success', 'Data sumber cangkang sawit berhasil diperbarui');
+        return redirect()->route('palm-oil-sources.index')
+            ->with('success', self::PESAN_SUKSES);
     }
 
     public function destroy(PalmOilSource $palmOilSource)

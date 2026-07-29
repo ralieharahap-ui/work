@@ -78,7 +78,7 @@ export default function UnloadingPointShow({ point, can }) {
 
                 <div className="card mb-6">
                     <h3 className="section-title"><MapPinIcon className="w-[18px] h-[18px] text-red-400" /> Lokasi di Peta</h3>
-                    <MapViewer unloadingPoints={[point]} center={[parseFloat(point.latitude), parseFloat(point.longitude)]} zoom={9} />
+                    <MapViewer unloadingPoints={[point]} clickable={false} center={[parseFloat(point.latitude), parseFloat(point.longitude)]} zoom={9} />
                     <p className="text-slate-400 text-xs mt-3">🔴 Titik Bongkar (Customer)</p>
                 </div>
 

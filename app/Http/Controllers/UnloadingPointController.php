@@ -9,6 +9,9 @@ use Inertia\Response;
 
 class UnloadingPointController extends Controller
 {
+    /** Pesan konfirmasi setelah data disimpan (ditampilkan sebagai toast di halaman list). */
+    private const PESAN_SUKSES = 'Terima kasih, data Anda berhasil diinput. Silakan cek kesesuaian data pada tampilan menu Dashboard.';
+
     public function index(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
@@ -78,14 +81,14 @@ class UnloadingPointController extends Controller
     {
         $validated = $this->normalize($request->validate($this->rules()));
 
-        $point = UnloadingPoint::create([
+        UnloadingPoint::create([
             ...$validated,
             'organization_id' => auth()->user()->organization_id,
             'status'          => 'active',
         ]);
 
-        return redirect()->route('unloading-points.show', $point->id)
-            ->with('success', 'Titik bongkar (customer) berhasil ditambahkan');
+        return redirect()->route('unloading-points.index')
+            ->with('success', self::PESAN_SUKSES);
     }
 
     public function show(UnloadingPoint $unloadingPoint): Response
@@ -113,8 +116,8 @@ class UnloadingPointController extends Controller
 
         $unloadingPoint->update($this->normalize($request->validate($this->rules())));
 
-        return redirect()->route('unloading-points.show', $unloadingPoint->id)
-            ->with('success', 'Data titik bongkar berhasil diperbarui');
+        return redirect()->route('unloading-points.index')
+            ->with('success', self::PESAN_SUKSES);
     }
 
     public function destroy(UnloadingPoint $unloadingPoint)

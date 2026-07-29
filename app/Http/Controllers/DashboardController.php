@@ -28,17 +28,22 @@ class DashboardController extends Controller
             ->where('status', 'active')
             ->get();
 
+        // Data PLTU tetap dikirim (tidak dihapus) — hanya tidak lagi digambar sebagai
+        // titik oranye di peta, sesuai permintaan tampilan.
+        $pltuLocations = PawmPLTU::where('status', 'operational')->get();
+
         return Inertia::render('Dashboard/Index', [
             'palm_sources'     => $palmSources,
             'unloading_points' => $unloadingPoints,
             'jetty_points'     => $jettyPoints,
-            'pltu_locations'   => PawmPLTU::where('status', 'operational')->get(),
+            'pltu_locations'   => $pltuLocations,
             'palm_summary'     => [
                 'total_volume'    => $palmSources->sum('stock_volume'),
                 'source_count'    => $palmSources->count(),
                 'low_stock_count' => $palmSources->filter(fn ($s) => $s->isLowStock())->count(),
                 'customer_count'  => $unloadingPoints->count(),
                 'jetty_count'     => $jettyPoints->count(),
+                'pltu_count'      => $pltuLocations->count(),
             ],
         ]);
     }

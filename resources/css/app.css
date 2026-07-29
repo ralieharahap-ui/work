@@ -138,3 +138,75 @@
     color: theme('colors.slate.400') !important;
 }
 .leaflet-control-attribution a { color: theme('colors.slate.300') !important; }
+
+/* ── Marker kustom bergambar + animasi ───────────────────────────────── */
+.gep-marker-wrap { background: none !important; border: none !important; }
+
+.gep-marker {
+    animation: gep-drop .7s cubic-bezier(.22, 1.3, .36, 1) both;
+    transform-origin: 50% 100%;
+    transition: transform .25s cubic-bezier(.22, 1, .36, 1), filter .25s ease;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .45));
+    cursor: pointer;
+}
+.gep-marker:hover {
+    transform: scale(1.18) translateY(-4px);
+    filter: drop-shadow(0 8px 16px var(--pin-glow, rgba(0, 0, 0, .5)));
+    z-index: 1000;
+}
+.gep-marker:active { transform: scale(1.05) translateY(-1px); }
+.gep-marker-shadow { animation: gep-shadow 3.2s ease-in-out infinite; }
+
+@keyframes gep-drop {
+    0%   { opacity: 0; transform: translateY(-46px) scale(.4); }
+    65%  { opacity: 1; transform: translateY(4px) scale(1.06); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes gep-shadow {
+    0%, 100% { opacity: .35; transform: scaleX(1); }
+    50%      { opacity: .18; transform: scaleX(.72); }
+}
+
+/* Garis rute mengalir */
+.gep-route {
+    animation: gep-flow 1.4s linear infinite;
+    filter: drop-shadow(0 0 3px rgba(52, 211, 153, .5));
+}
+@keyframes gep-flow { to { stroke-dashoffset: -36; } }
+
+/* Tooltip peta */
+.leaflet-tooltip.gep-tooltip {
+    background: rgb(15 23 42 / .96);
+    border: 1px solid theme('colors.slate.600');
+    border-radius: .7rem;
+    box-shadow: 0 12px 28px -8px rgb(0 0 0 / .7);
+    padding: .6rem .75rem;
+    color: theme('colors.slate.200');
+    font-size: .78rem;
+    line-height: 1.45;
+    white-space: nowrap;
+    animation: gep-tip-in .18s ease-out both;
+}
+.leaflet-tooltip.gep-tooltip::before { border-top-color: theme('colors.slate.600'); }
+@keyframes gep-tip-in {
+    from { opacity: 0; transform: translateY(4px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.gep-tip-title { color: #fff; font-weight: 700; margin-bottom: .1rem; }
+.gep-tip-sub   { color: theme('colors.slate.400'); font-size: .72rem; }
+.gep-tip-green { color: theme('colors.emerald.400'); font-weight: 600; margin-top: .2rem; }
+.gep-tip-red   { color: theme('colors.red.400');     font-weight: 600; margin-top: .2rem; }
+.gep-tip-blue  { color: theme('colors.blue.400');    font-weight: 600; margin-top: .2rem; }
+.gep-tip-cta {
+    color: theme('colors.sky.300');
+    font-size: .68rem;
+    margin-top: .35rem;
+    padding-top: .35rem;
+    border-top: 1px dashed theme('colors.slate.700');
+}
+
+/* Hormati preferensi pengguna yang mengurangi animasi */
+@media (prefers-reduced-motion: reduce) {
+    .gep-marker, .gep-marker-shadow, .gep-route { animation: none !important; }
+    .gep-marker:hover { transform: scale(1.08); }
+}

@@ -6,19 +6,6 @@ import { ArrowLeftIcon, MapPinIcon, DocumentTextIcon, ExclamationTriangleIcon } 
 const fmt = (n) => new Intl.NumberFormat('id-ID').format(n);
 
 export default function PalmOilSourceShow({ source, can }) {
-    // Sample PLTU locations (dalam praktik akan dari database)
-    const pltuLocations = [
-        {
-            id: 1,
-            name: 'PLTU Sofifi & Tidore',
-            latitude: 0.6667,
-            longitude: 127.3833,
-            province: 'Maluku Utara',
-            city: 'Tidore',
-            capacity: 40,
-        },
-    ];
-
     const isLowStock = parseFloat(source.stock_volume) <= parseFloat(source.stock_min);
 
     return (
@@ -127,13 +114,11 @@ export default function PalmOilSourceShow({ source, can }) {
                     </h3>
                     <MapViewer
                         sources={[source]}
-                        pltuLocations={pltuLocations}
+                        clickable={false}
                         center={[parseFloat(source.latitude), parseFloat(source.longitude)]}
-                        zoom={8}
+                        zoom={9}
                     />
-                    <p className="text-slate-400 text-xs mt-3">
-                        🟢 Sumber Cangkang Sawit | 🔴 PLTU (Pembangkit Listrik Tenaga Uap)
-                    </p>
+                    <p className="text-slate-400 text-xs mt-3">🌴 Lokasi sumber cangkang sawit</p>
                 </div>
 
                 {/* Informasi Lokasi */}

@@ -48,7 +48,7 @@ export default function JettyPointShow({ jetty, can }) {
 
                 <div className="card mb-6">
                     <h3 className="section-title"><MapPinIcon className="w-[18px] h-[18px] text-blue-400" /> Lokasi di Peta</h3>
-                    <MapViewer jettyPoints={[jetty]} center={[parseFloat(jetty.latitude), parseFloat(jetty.longitude)]} zoom={9} />
+                    <MapViewer jettyPoints={[jetty]} clickable={false} center={[parseFloat(jetty.latitude), parseFloat(jetty.longitude)]} zoom={9} />
                     <p className="text-slate-400 text-xs mt-3">🚢 Titik Dermaga</p>
                 </div>
 
