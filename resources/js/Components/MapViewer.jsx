@@ -115,8 +115,10 @@ export default function MapViewer({
         layersRef.current = [];
         const add = (layer) => { layer.addTo(map.current); layersRef.current.push(layer); };
 
-        /** Marker + tooltip hover + klik → halaman detail */
-        const addMarker = (item, type, url, rows, delay) => {
+        /** Marker + tooltip hover + klik → halaman detail.
+         *  Jeda animasi dibatasi agar tetap cepat walau titiknya banyak. */
+        const addMarker = (item, type, url, rows, order) => {
+            const delay = Math.min(order * 45, 800);
             const m = L.marker(coord(item), {
                 icon: createMarkerIcon(type, delay),
                 riseOnHover: true,
