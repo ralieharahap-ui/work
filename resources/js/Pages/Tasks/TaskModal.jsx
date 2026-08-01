@@ -72,14 +72,14 @@ export default function TaskModal({ onClose, initialData, team, projects, divisi
                         <div>
                             <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Judul Task *</label>
                             <input required type="text" name="title" value={formData.title} onChange={handleChange}
-                                className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
+                                className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
                                 placeholder="Cth: Rekap DO PKS A" />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Deskripsi</label>
                             <textarea name="description" value={formData.description} onChange={handleChange} rows="3"
-                                className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
+                                className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
                                 placeholder="Detail pekerjaan..." />
                         </div>
 
@@ -105,7 +105,7 @@ export default function TaskModal({ onClose, initialData, team, projects, divisi
                             <div className="flex gap-2">
                                 <input type="text" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSubtask())}
-                                    className="flex-1 p-2 text-sm border border-black/10 rounded-md outline-none focus:border-notion-blue"
+                                    className="flex-1 p-2 text-sm border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue"
                                     placeholder="Tambah item baru..." />
                                 <button type="button" onClick={addSubtask} className="px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-black/80 transition-colors">
                                     Tambah
@@ -116,43 +116,43 @@ export default function TaskModal({ onClose, initialData, team, projects, divisi
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Kategori</label>
-                                <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                                <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Prioritas</label>
-                                <select name="priority" value={formData.priority} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                                <select name="priority" value={formData.priority} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">PIC (Penanggung Jawab)</label>
-                                <select name="pic_id" value={formData.pic_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                                <select name="pic_id" value={formData.pic_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     <option value="">-- Pilih PIC --</option>
                                     {team.map((t) => <option key={t.id} value={t.id}>{t.name}{t.division ? ` (${t.division})` : ''}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Divisi</label>
-                                <select name="division_id" value={formData.division_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                                <select name="division_id" value={formData.division_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     <option value="">-- Tidak ditentukan --</option>
                                     {divisions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Status</label>
-                                <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                                <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     {KANBAN_EDITABLE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Tenggat Waktu</label>
-                                <input type="date" name="deadline" value={formData.deadline} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue" />
+                                <input type="date" name="deadline" value={formData.deadline} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue" />
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Terkait Proyek (Opsional)</label>
-                                <select name="project_id" value={formData.project_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                                <select name="project_id" value={formData.project_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     <option value="">-- Tidak ada proyek --</option>
                                     {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
                                 </select>

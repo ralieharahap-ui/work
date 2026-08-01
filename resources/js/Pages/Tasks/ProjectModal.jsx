@@ -38,18 +38,18 @@ export default function ProjectModal({ onClose, initialData, team }) {
                     <div>
                         <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Nama Proyek *</label>
                         <input required type="text" name="title" value={formData.title} onChange={handleChange}
-                            className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
+                            className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
                             placeholder="Cth: Ekspansi Vendor Biomassa" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Tujuan / Deskripsi</label>
                         <textarea name="description" value={formData.description} onChange={handleChange} rows="3"
-                            className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue" />
+                            className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Status Proyek</label>
-                            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                 <option value="Planning">Planning</option>
                                 <option value="Ongoing">Ongoing</option>
                                 <option value="On Hold">On Hold</option>
@@ -58,12 +58,12 @@ export default function ProjectModal({ onClose, initialData, team }) {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Target Selesai</label>
-                            <input type="date" name="end_date" value={formData.end_date} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue" />
+                            <input type="date" name="end_date" value={formData.end_date} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue" />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Project Owner</label>
-                        <select name="owner_id" value={formData.owner_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md outline-none focus:border-notion-blue">
+                        <select name="owner_id" value={formData.owner_id} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                             {team.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                     </div>

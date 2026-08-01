@@ -45,7 +45,7 @@ export default function CommentThread({ task }) {
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Tulis komentar untuk tim..."
-                    className="flex-1 p-2 text-sm border border-black/10 rounded-md outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
+                    className="flex-1 p-2 text-sm border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue focus:ring-1 focus:ring-notion-blue"
                 />
                 <button
                     type="submit"
