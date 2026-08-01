@@ -91,9 +91,22 @@ class TaskController extends Controller
         $subtasks = $request->input('subtasks', []);
 
         DB::transaction(function () use ($task, $data, $subtasks, $request) {
-            if (($data['status'] ?? null) === 'Done') {
+            $wasDone  = $task->status === 'Done';
+            $willDone = ($data['status'] ?? null) === 'Done';
+
+            // Bukti hanya diwajibkan saat task BERALIH menjadi Done. Mengedit task
+            // yang sudah selesai tidak perlu mengunggah ulang dokumennya.
+            if ($willDone && !$wasDone) {
                 $data = $this->attachEvidence($request, $data);
             }
+
+            // Task selesai yang dibuka kembali: bersihkan jejak penutupan agar
+            // status dan metadata tidak saling bertentangan.
+            if (!$willDone && $wasDone) {
+                $data['closed_by'] = null;
+                $data['closed_at'] = null;
+            }
+
             $task->update($data);
             $this->syncChecklist($task, $subtasks);
         });

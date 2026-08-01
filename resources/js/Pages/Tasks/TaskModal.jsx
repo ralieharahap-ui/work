@@ -13,7 +13,7 @@ export default function TaskModal({ onClose, initialData, team, projects, divisi
         category: initialData?.category || 'Operasional',
         division_id: initialData?.division_id || '',
         pic_id: initialData?.pic_id || currentUserId || '',
-        status: initialData && initialData.status !== 'Done' ? initialData.status : 'To Do',
+        status: initialData?.status || 'To Do',
         priority: initialData?.priority || 'Medium',
         deadline: initialData?.deadline ? initialData.deadline.substring(0, 10) : '',
         project_id: initialData?.project_id || '',
@@ -144,7 +144,15 @@ export default function TaskModal({ onClose, initialData, team, projects, divisi
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Status</label>
                                 <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border border-black/10 rounded-md text-[rgba(0,0,0,0.9)] outline-none focus:border-notion-blue">
                                     {KANBAN_EDITABLE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                                    {/* Task yang sudah selesai tetap mempertahankan statusnya; memilih
+                                        status lain berarti sengaja membuka kembali task tersebut. */}
+                                    {initialData?.status === 'Done' && <option value="Done">Done (selesai)</option>}
                                 </select>
+                                {initialData?.status === 'Done' && formData.status !== 'Done' && (
+                                    <p className="text-[11px] text-orange-700 mt-1">
+                                        Task akan dibuka kembali dan tanda penyelesaiannya dihapus.
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-[rgba(0,0,0,0.75)] mb-1">Tenggat Waktu</label>
