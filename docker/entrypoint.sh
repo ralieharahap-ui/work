@@ -119,5 +119,13 @@ php artisan route:cache
 php artisan view:cache || true
 php artisan storage:link 2>/dev/null || true
 
+# 5) Kembalikan kepemilikan folder writable ke www-data.
+#    Seluruh perintah artisan di atas berjalan sebagai root dan dapat
+#    meninggalkan berkas cache/log milik root (mis. cache permission Spatie di
+#    storage/framework/cache/data). PHP-FPM berjalan sebagai www-data dan akan
+#    gagal "Permission denied" menulis ulang berkas tersebut — menyebabkan
+#    error 500 pada request pertama yang menyentuh cache itu.
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
 echo "==> Siap. Menjalankan web server."
 exec "$@"
