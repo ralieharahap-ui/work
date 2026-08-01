@@ -138,3 +138,20 @@ export function UsersColorIcon({ className = 'w-6 h-6' }) {
         </svg>
     );
 }
+
+// ✅ Manajemen Tugas — papan kanban dengan kartu tercentang
+export function TaskBoardIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="8" width="38" height="34" rx="4" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <rect x="9" y="13" width="10" height="24" rx="2" fill="#0EA5E9" opacity=".18" />
+            <rect x="19" y="13" width="10" height="16" rx="2" fill="#22C55E" opacity=".18" />
+            <rect x="29" y="13" width="10" height="10" rx="2" fill="#F59E0B" opacity=".18" />
+            <rect x="10.5" y="16" width="7" height="4" rx="1.2" fill="#38BDF8" />
+            <rect x="10.5" y="22" width="7" height="4" rx="1.2" fill="#38BDF8" />
+            <rect x="20.5" y="16" width="7" height="4" rx="1.2" fill="#4ADE80" />
+            <path d="M22 25.2l1.6 1.6 3-3.2" stroke="#16A34A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <rect x="30.5" y="16" width="7" height="4" rx="1.2" fill="#FBBF24" />
+        </svg>
+    );
+}

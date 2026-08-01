@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState } from 'react';
-import { CheckIcon, XMarkIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, ClockIcon, PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import UserFormModal from '@/Components/UserFormModal';
 
 const tgl = (d) => d ? new Date(d).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -10,9 +11,10 @@ const hierarchyLabel = {
     stakeholder: 'Stakeholder', administrator: 'Administrator',
 };
 
-export default function AdminUsersIndex({ users, filters, pendingCount }) {
+export default function AdminUsersIndex({ users, filters, pendingCount, divisions, roles }) {
     const [search, setSearch] = useState(filters?.search ?? '');
-    const [confirmAction, setConfirmAction] = useState(null); // { user, type: 'activate'|'deactivate' }
+    const [confirmAction, setConfirmAction] = useState(null); // { user, type: 'activate'|'deactivate'|'delete' }
+    const [editingUser, setEditingUser] = useState(undefined); // undefined = closed, null = new
 
     const applyFilter = (status) => {
         router.get(route('admin.users.index'), { ...filters, status }, { preserveState: true, replace: true });
@@ -26,6 +28,10 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
     const runAction = () => {
         if (!confirmAction) return;
         const { user, type } = confirmAction;
+        if (type === 'delete') {
+            router.delete(route('admin.users.destroy', user.id), { preserveScroll: true, onFinish: () => setConfirmAction(null) });
+            return;
+        }
         const routeName = type === 'activate' ? 'admin.users.activate' : 'admin.users.deactivate';
         router.patch(route(routeName, user.id), {}, { preserveScroll: true, onFinish: () => setConfirmAction(null) });
     };
@@ -39,11 +45,16 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
                         <p className="text-slate-300 text-sm font-medium">Persetujuan &amp; Manajemen Akun</p>
                         <p className="text-slate-500 text-xs mt-0.5">{users.total} pengguna terdaftar</p>
                     </div>
-                    {pendingCount > 0 && (
-                        <span className="badge badge-amber">
-                            <ClockIcon className="w-3.5 h-3.5" /> {pendingCount} menunggu persetujuan
-                        </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {pendingCount > 0 && (
+                            <span className="badge badge-amber">
+                                <ClockIcon className="w-3.5 h-3.5" /> {pendingCount} menunggu persetujuan
+                            </span>
+                        )}
+                        <button onClick={() => setEditingUser(null)} className="btn-primary !py-1.5 !px-3 text-xs">
+                            <PlusIcon className="w-3.5 h-3.5" /> Tambah Pengguna
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -136,6 +147,20 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
                                                         <XMarkIcon className="w-4 h-4" />
                                                     </button>
                                                 )}
+                                                <button
+                                                    onClick={() => setEditingUser({ ...u, role: (u.roles ?? [])[0]?.name })}
+                                                    className="p-1.5 rounded-md text-slate-400 hover:text-blue-300 hover:bg-slate-700/50 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <PencilSquareIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmAction({ user: u, type: 'delete' })}
+                                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                                                    title="Hapus akses"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -169,17 +194,19 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
                                     ${confirmAction.type === 'activate' ? 'bg-emerald-500/15 ring-emerald-500/20' : 'bg-red-500/15 ring-red-500/20'}`}>
                                     {confirmAction.type === 'activate'
                                         ? <CheckIcon className="w-5 h-5 text-emerald-400" />
-                                        : <XMarkIcon className="w-5 h-5 text-red-400" />}
+                                        : confirmAction.type === 'delete'
+                                            ? <TrashIcon className="w-5 h-5 text-red-400" />
+                                            : <XMarkIcon className="w-5 h-5 text-red-400" />}
                                 </div>
                                 <div>
                                     <h2 className="text-white font-semibold">
-                                        {confirmAction.type === 'activate' ? 'Aktifkan akun?' : 'Nonaktifkan akun?'}
+                                        {confirmAction.type === 'activate' ? 'Aktifkan akun?' : confirmAction.type === 'delete' ? 'Hapus akses pengguna?' : 'Nonaktifkan akun?'}
                                     </h2>
                                     <p className="text-slate-400 text-sm mt-1">
                                         <span className="text-slate-200">{confirmAction.user.name}</span>
-                                        {confirmAction.type === 'activate'
-                                            ? ' akan bisa masuk ke aplikasi.'
-                                            : ' tidak akan bisa masuk sampai diaktifkan kembali.'}
+                                        {confirmAction.type === 'activate' && ' akan bisa masuk ke aplikasi.'}
+                                        {confirmAction.type === 'deactivate' && ' tidak akan bisa masuk sampai diaktifkan kembali.'}
+                                        {confirmAction.type === 'delete' && ' akan dihapus permanen dan tidak bisa login lagi.'}
                                     </p>
                                 </div>
                             </div>
@@ -188,12 +215,22 @@ export default function AdminUsersIndex({ users, filters, pendingCount }) {
                                     onClick={runAction}
                                     className={confirmAction.type === 'activate' ? 'btn-primary flex-1' : 'btn-danger flex-1'}
                                 >
-                                    Ya, {confirmAction.type === 'activate' ? 'Aktifkan' : 'Nonaktifkan'}
+                                    Ya, {confirmAction.type === 'activate' ? 'Aktifkan' : confirmAction.type === 'delete' ? 'Hapus' : 'Nonaktifkan'}
                                 </button>
                                 <button onClick={() => setConfirmAction(null)} className="btn-secondary flex-1">Batal</button>
                             </div>
                         </div>
                     </div>
+                )}
+
+                {editingUser !== undefined && (
+                    <UserFormModal
+                        onClose={() => setEditingUser(undefined)}
+                        initialData={editingUser}
+                        divisions={divisions}
+                        roles={roles}
+                        theme="dark"
+                    />
                 )}
             </AppLayout>
         </>

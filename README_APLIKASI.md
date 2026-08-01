@@ -11,11 +11,42 @@ Aplikasi ERP untuk manajemen rantai pasok cangkang sawit (biomassa) milik **PT G
 | Modul | Keterangan |
 |-------|-----------|
 | **Dashboard** | Kartu statistik + peta denah + ringkasan stok per sumber |
+| **Manajemen Tugas** | Task management tim ala Notion — Kanban, proyek, alert deadline, bukti penyelesaian |
 | **Sumber Cangkang Sawit** | Input lokasi, volume stok, nama sumber, supplier → 🟢 hijau di peta |
 | **Titik Bongkar (Customer)** | Input titik bongkar customer + PIC + kapasitas → 🔴 merah di peta |
 | **PLTU** | Data pembangkit tujuan → 🟠 amber di peta |
 
 Setiap input **otomatis tervisualisasi** di peta dashboard.
+
+---
+
+## ✅ Modul Manajemen Tugas (`/tasks`)
+
+Workspace task management tim bergaya **Notion** (netral hangat, border tipis, Notion Blue).
+
+| Fitur | Implementasi |
+|-------|--------------|
+| **Terintegrasi antar user** | Semua task, proyek, dan komentar tersimpan per-organisasi di database dan langsung terlihat oleh seluruh anggota tim |
+| **Super admin kelola akses** | Super Admin dapat **buat / edit / hapus** akun & role pengguna lain — dari tab *Tim* maupun halaman *Manajemen User*. Super Admin terakhir dilindungi agar tidak bisa dihapus/diturunkan |
+| **Interaksi antar user** | Setiap task punya thread diskusi; semua anggota yang punya akses dapat berkomentar |
+| **Alert deadline & prioritas** | Banner peringatan 3 kelompok: **Kadaluarsa**, **Mendekati Tenggat** (≤3 hari), dan **Prioritas Tinggi/Urgent** — plus badge merah di sidebar |
+| **Wajib bukti saat closing** | Status `Done` hanya bisa dicapai lewat modal *Selesaikan Task* yang **mewajibkan unggah dokumen evidence** (PDF/gambar/dokumen, maks 10MB). Divalidasi di server, bukan hanya di UI |
+| **Akses semua perangkat** | Login email + password, layout responsif (drawer di HP/tablet, sidebar di desktop) |
+
+**Tab yang tersedia:** Papan Kanban · Dashboard · Proyek · Tim
+
+**Peran (role) & hak akses:**
+
+| Role | Hak |
+|------|-----|
+| `super_admin` | Akses penuh + kelola pengguna |
+| `approval` | Kelola task & proyek, menyetujui |
+| `reviewer` | Kelola & edit task, kelola proyek |
+| `drafter` | Buat & kelola task |
+| `external` | Hanya melihat (read-only) |
+
+> Menutup task menyimpan file bukti ke `storage/app/public/task-evidence/`.
+> Jalankan `php artisan storage:link` sekali agar file dapat diakses dari browser.
 
 ---
 
@@ -72,14 +103,19 @@ npm run build     # atau: npm run dev (mode pengembangan)
 
 ```
 app/
-  Http/Controllers/   DashboardController, PalmOilSourceController, UnloadingPointController, AuthController
-  Models/             PalmOilSource, UnloadingPoint, PawmPLTU, User, Organization, Division ...
+  Http/Controllers/   DashboardController, PalmOilSourceController, UnloadingPointController, AuthController,
+                      TaskController, TaskProjectController, TaskCommentController, AdminUserController
+  Models/             PalmOilSource, UnloadingPoint, PawmPLTU, User, Organization, Division,
+                      Task, TaskProject, TaskChecklistItem, TaskComment ...
+  Services/           TaskAlertService (hitung alert deadline/prioritas/kadaluarsa)
 database/
-  migrations/         skema tabel (organizations, users, palm_oil_sources, unloading_points, ...)
-  seeders/            data contoh (admin, sumber, titik bongkar, PLTU)
+  migrations/         skema tabel (organizations, users, palm_oil_sources, unloading_points, tasks, ...)
+  seeders/            data contoh (admin, sumber, titik bongkar, PLTU, task demo)
 resources/js/
   Components/MapViewer.jsx        komponen peta Leaflet (3 jenis marker)
+  Components/UserFormModal.jsx    modal buat/edit pengguna (dipakai Tasks & Admin)
   Pages/Dashboard/                dashboard + peta
+  Pages/Tasks/                    modul manajemen tugas (Kanban, Dashboard, Proyek, Tim, modal)
   Pages/PalmOilSources/           CRUD sumber cangkang
   Pages/UnloadingPoints/          CRUD titik bongkar (customer)
 routes/web.php        seluruh route

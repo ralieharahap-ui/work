@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\TaskAlertService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,6 +37,9 @@ class HandleInertiaRequests extends Middleware
             ],
             'pendingUsersCount' => fn () => ($user && $user->hasRole('super_admin'))
                 ? User::where('organization_id', $user->organization_id)->where('is_active', false)->count()
+                : 0,
+            'taskAlertsCount' => fn () => $user
+                ? app(TaskAlertService::class)->forUser($user)['counts']['total']
                 : 0,
         ];
     }
