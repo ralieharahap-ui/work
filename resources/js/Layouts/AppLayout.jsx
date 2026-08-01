@@ -3,11 +3,12 @@ import { ArrowRightOnRectangleIcon, XCircleIcon, Bars3Icon, XMarkIcon } from '@h
 import { useState, useEffect } from 'react';
 import {
     MapDashboardIcon, PalmPlantationIcon, IndustryIcon, JettyIcon,
-    CalculatorColorIcon, UsersColorIcon,
+    CalculatorColorIcon, UsersColorIcon, TaskBoardIcon,
 } from '@/Components/AppIcons';
 
 const nav = [
     { label: 'Dashboard',        href: '/',                   icon: MapDashboardIcon,   perm: null },
+    { label: 'Manajemen Tugas',  href: '/tasks',              icon: TaskBoardIcon,      perm: 'tasks.view' },
     { label: 'Sumber Cangkang',  href: '/palm-oil-sources',   icon: PalmPlantationIcon, perm: 'inventory.view' },
     { label: 'Titik Bongkar',    href: '/unloading-points',   icon: IndustryIcon,       perm: 'inventory.view' },
     { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view' },
@@ -83,7 +84,7 @@ function Flash() {
 }
 
 export default function AppLayout({ children, title }) {
-    const { auth, pendingUsersCount } = usePage().props;
+    const { auth, pendingUsersCount, taskAlertsCount } = usePage().props;
     const user = auth?.user;
     const permissions = auth?.permissions ?? [];
     const roles = auth?.roles ?? [];
@@ -169,6 +170,11 @@ export default function AppLayout({ children, title }) {
                             {item.href === '/admin/users' && pendingUsersCount > 0 && (
                                 <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center animate-bounce-soft">
                                     {pendingUsersCount}
+                                </span>
+                            )}
+                            {item.href === '/tasks' && taskAlertsCount > 0 && (
+                                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-bounce-soft">
+                                    {taskAlertsCount}
                                 </span>
                             )}
                         </Link>

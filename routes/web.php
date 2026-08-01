@@ -7,6 +7,9 @@ use App\Http\Controllers\PalmOilSourceController;
 use App\Http\Controllers\UnloadingPointController;
 use App\Http\Controllers\JettyPointController;
 use App\Http\Controllers\ProjectCalculatorController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaskCommentController;
+use App\Http\Controllers\TaskProjectController;
 use Illuminate\Support\Facades\Route;
 
 // ── Auth ─────────────────────────────────────────────────
@@ -64,10 +67,31 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/project-calculator/{scenario}', [ProjectCalculatorController::class, 'destroy'])->middleware('permission:inventory.delete')->name('project-calculator.destroy');
     });
 
-    // Manajemen User (persetujuan akun signup) — khusus super_admin
+    // Manajemen User (super admin: buat, edit, hapus akses & persetujuan akun signup)
     Route::middleware('role:super_admin')->prefix('admin/users')->group(function () {
         Route::get('/',                  [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::post('/',                 [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::put('/{user}',            [AdminUserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/{user}',         [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
         Route::patch('/{user}/activate', [AdminUserController::class, 'activate'])->name('admin.users.activate');
         Route::patch('/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('admin.users.deactivate');
+    });
+
+    // Manajemen Tugas (Task Management ala Notion)
+    Route::middleware('permission:tasks.view')->group(function () {
+        Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+
+        Route::post('/tasks',                [TaskController::class, 'store'])->name('tasks.store');
+        Route::put('/tasks/{task}',          [TaskController::class, 'update'])->name('tasks.update');
+        Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+        Route::post('/tasks/{task}/close',   [TaskController::class, 'close'])->name('tasks.close');
+        Route::delete('/tasks/{task}',       [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+        // Interaksi antar user: komentar dapat ditulis oleh siapa pun yang punya akses lihat
+        Route::post('/tasks/{task}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
+
+        Route::post('/task-projects',                [TaskProjectController::class, 'store'])->name('task-projects.store');
+        Route::put('/task-projects/{taskProject}',    [TaskProjectController::class, 'update'])->name('task-projects.update');
+        Route::delete('/task-projects/{taskProject}', [TaskProjectController::class, 'destroy'])->name('task-projects.destroy');
     });
 });

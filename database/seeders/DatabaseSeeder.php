@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             PalmOilSourceSeeder::class,
             UnloadingPointSeeder::class,
             JettyPointSeeder::class,
+            TaskDemoSeeder::class,
         ]);
     }
 }

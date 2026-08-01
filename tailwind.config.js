@@ -55,8 +55,27 @@ export default {
                     900: '#0d1c26',
                     950: '#030b11',
                 },
+                // Palet khusus modul "Manajemen Tugas" (gaya Notion) — netral hangat + biru Notion
+                notion: {
+                    blue: '#0075de',
+                    'blue-active': '#005bab',
+                    'blue-badge-bg': '#f2f9ff',
+                    'blue-badge-text': '#097fe8',
+                    navy: '#213183',
+                    ink: 'rgba(0,0,0,0.95)',
+                },
+                warm: {
+                    white: '#f6f5f4',
+                    50: '#f6f5f4',
+                    100: '#efeeec',
+                    300: '#a39e98',
+                    500: '#615d59',
+                    800: '#31302e',
+                },
             },
             boxShadow: {
+                notion: '0 4px 18px 0 rgb(0 0 0 / 0.04), 0 2.025px 7.85px 0 rgb(0 0 0 / 0.027), 0 0.8px 2.93px 0 rgb(0 0 0 / 0.02), 0 0.175px 1.04px 0 rgb(0 0 0 / 0.01)',
+                'notion-deep': '0 1px 3px 0 rgb(0 0 0 / 0.01), 0 3px 7px 0 rgb(0 0 0 / 0.02), 0 7px 15px 0 rgb(0 0 0 / 0.02), 0 14px 28px 0 rgb(0 0 0 / 0.04), 0 23px 52px 0 rgb(0 0 0 / 0.05)',
                 card: '0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.2)',
                 'card-hover': '0 8px 24px -6px rgb(0 0 0 / 0.5)',
             },
