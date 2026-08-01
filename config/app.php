@@ -20,6 +20,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mode Aplikasi
+    |--------------------------------------------------------------------------
+    |
+    | Menentukan modul mana yang aktif pada instalasi ini:
+    |
+    |   'full'  — seluruh modul (biomassa + manajemen tugas). Ini nilai bawaan,
+    |             sehingga instalasi yang sudah berjalan tidak berubah perilaku.
+    |   'tasks' — khusus manajemen tugas; modul biomassa (sumber cangkang, titik
+    |             bongkar, dermaga, kalkulasi proyek) dinonaktifkan.
+    |
+    | Diatur lewat variabel lingkungan APP_MODE.
+    |
+    */
+
+    'mode' => env('APP_MODE', 'full'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

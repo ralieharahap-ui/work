@@ -22,6 +22,9 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
+            // 'full' = seluruh modul, 'tasks' = khusus manajemen tugas
+            'appMode' => config('app.mode'),
+            'appName' => config('app.name'),
             'auth' => [
                 'user' => $user
                     ? $user->load('division')->only([

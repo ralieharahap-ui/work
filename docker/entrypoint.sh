@@ -48,6 +48,21 @@ if [ -z "${APP_KEY}" ]; then
   php artisan key:generate --force
 fi
 
+# 1b) Cadangkan database SQLite sebelum migrasi (jaring pengaman)
+if [ "${DB_CONN}" = "sqlite" ] && [ -s "${DB_FILE}" ] && [ "${BACKUP_BEFORE_MIGRATE:-true}" = "true" ]; then
+  BACKUP_DIR="$(dirname "$DB_FILE")/backups"
+  mkdir -p "$BACKUP_DIR"
+  BACKUP_FILE="${BACKUP_DIR}/db-$(date +%Y%m%d-%H%M%S).sqlite"
+  if cp "$DB_FILE" "$BACKUP_FILE" 2>/dev/null; then
+    echo "==> Cadangan database dibuat: ${BACKUP_FILE}"
+    # Simpan 5 cadangan terbaru saja agar volume tidak penuh
+    ls -1t "${BACKUP_DIR}"/db-*.sqlite 2>/dev/null | tail -n +6 | xargs -r rm -f
+  else
+    echo "!! Gagal membuat cadangan database (migrasi tetap dilanjutkan)."
+  fi
+  chown -R www-data:www-data "$BACKUP_DIR" 2>/dev/null || true
+fi
+
 # 2) Migrasi
 echo "==> Menjalankan migrasi..."
 php artisan migrate --force
@@ -64,9 +79,20 @@ if [ "${SEED_ON_DEPLOY:-true}" = "true" ]; then
     echo "==> Database kosong, seeding data awal..."
     php artisan db:seed --force || true
   else
-    echo "==> Data sudah ada (organisasi=${ORG}), lewati seeding."
+    echo "==> Data sudah ada (organisasi=${ORG}), lewati seeding data."
   fi
 fi
+
+# 3a) Sinkronisasi role & permission — SELALU dijalankan.
+#     Seeding penuh dilewati bila data sudah ada, sehingga modul baru (mis.
+#     "tasks") tidak akan pernah memperoleh permission-nya dan menjadi tidak
+#     dapat diakses siapa pun. Seeder ini idempoten dan hanya menegakkan
+#     matriks role→permission yang didefinisikan di kode; aplikasi tidak
+#     menyediakan cara mengubah permission per role, jadi tidak ada
+#     penyesuaian pengguna yang bisa hilang.
+echo "==> Menyinkronkan role & permission..."
+php artisan db:seed --class=Database\\Seeders\\RolePermissionSeeder --force || \
+  echo "!! Sinkronisasi permission gagal (periksa log)."
 
 # 3b) Set / reset password admin bila variabel ADMIN_PASSWORD diisi
 if [ -n "${ADMIN_PASSWORD}" ]; then
