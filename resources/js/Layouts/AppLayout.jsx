@@ -6,13 +6,15 @@ import {
     CalculatorColorIcon, UsersColorIcon, TaskBoardIcon,
 } from '@/Components/AppIcons';
 
+// `biomassa: true` menandai menu milik modul sumber cangkang — disembunyikan
+// saat aplikasi dijalankan dalam mode khusus manajemen tugas (APP_MODE=tasks).
 const nav = [
-    { label: 'Dashboard',        href: '/',                   icon: MapDashboardIcon,   perm: null },
+    { label: 'Dashboard',        href: '/',                   icon: MapDashboardIcon,   perm: null, biomassa: true },
     { label: 'Manajemen Tugas',  href: '/tasks',              icon: TaskBoardIcon,      perm: 'tasks.view' },
-    { label: 'Sumber Cangkang',  href: '/palm-oil-sources',   icon: PalmPlantationIcon, perm: 'inventory.view' },
-    { label: 'Titik Bongkar',    href: '/unloading-points',   icon: IndustryIcon,       perm: 'inventory.view' },
-    { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view' },
-    { label: 'Kalkulasi Proyek', href: '/project-calculator', icon: CalculatorColorIcon, perm: 'inventory.view' },
+    { label: 'Sumber Cangkang',  href: '/palm-oil-sources',   icon: PalmPlantationIcon, perm: 'inventory.view', biomassa: true },
+    { label: 'Titik Bongkar',    href: '/unloading-points',   icon: IndustryIcon,       perm: 'inventory.view', biomassa: true },
+    { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view', biomassa: true },
+    { label: 'Kalkulasi Proyek', href: '/project-calculator', icon: CalculatorColorIcon, perm: 'inventory.view', biomassa: true },
     { label: 'Manajemen User',   href: '/admin/users',        icon: UsersColorIcon,     role: 'super_admin' },
 ];
 
@@ -84,7 +86,8 @@ function Flash() {
 }
 
 export default function AppLayout({ children, title }) {
-    const { auth, pendingUsersCount, taskAlertsCount } = usePage().props;
+    const { auth, pendingUsersCount, taskAlertsCount, appMode } = usePage().props;
+    const tasksOnly = appMode === 'tasks';
     const user = auth?.user;
     const permissions = auth?.permissions ?? [];
     const roles = auth?.roles ?? [];
@@ -107,6 +110,7 @@ export default function AppLayout({ children, title }) {
     }, []);
 
     const canSee = (item) => {
+        if (tasksOnly && item.biomassa) return false;
         if (item.role) return roles.includes(item.role);
         if (!item.perm) return true;
         return permissions.includes(item.perm);
@@ -132,7 +136,9 @@ export default function AppLayout({ children, title }) {
                 />
                 <div className="min-w-0 flex-1">
                     <p className="text-white font-semibold text-sm leading-tight truncate">PT Geosys Energi Prima</p>
-                    <p className="text-slate-500 text-[10px] leading-tight truncate">Database Sumber Biomassa by Ralie©2026</p>
+                    <p className="text-slate-500 text-[10px] leading-tight truncate">
+                        {tasksOnly ? 'Manajemen Tugas Tim by Ralie©2026' : 'Database Sumber Biomassa by Ralie©2026'}
+                    </p>
                 </div>
                 <button
                     onClick={() => setDrawerOpen(false)}

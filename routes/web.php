@@ -24,7 +24,16 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 // ── Protected ─────────────────────────────────────────────
 Route::middleware(['auth', 'active'])->group(function () {
 
-    Route::get('/', [DashboardController::class, '__invoke'])->name('dashboard');
+    // Pada mode 'tasks', halaman muka langsung menuju papan tugas karena
+    // dashboard peta merupakan bagian dari modul biomassa.
+    if (config('app.mode') === 'tasks') {
+        Route::get('/', fn () => redirect()->route('tasks.index'))->name('dashboard');
+    } else {
+        Route::get('/', [DashboardController::class, '__invoke'])->name('dashboard');
+    }
+
+    // ── Modul biomassa — hanya aktif pada mode 'full' ────────────────
+    if (config('app.mode') !== 'tasks') {
 
     // Sumber Cangkang Sawit
     Route::middleware('permission:inventory.view')->prefix('palm-oil-sources')->group(function () {
@@ -66,6 +75,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/project-calculator', [ProjectCalculatorController::class, 'store'])->middleware('permission:inventory.create')->name('project-calculator.store');
         Route::delete('/project-calculator/{scenario}', [ProjectCalculatorController::class, 'destroy'])->middleware('permission:inventory.delete')->name('project-calculator.destroy');
     });
+
+    } // ── akhir modul biomassa ─────────────────────────────────────
 
     // Manajemen User (super admin: buat, edit, hapus akses & persetujuan akun signup)
     Route::middleware('role:super_admin')->prefix('admin/users')->group(function () {
