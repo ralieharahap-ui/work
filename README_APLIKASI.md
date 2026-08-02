@@ -63,9 +63,14 @@ tugas per kategori: *terlambat*, *jatuh tempo hari ini*, dan *mendekati tenggat*
 | **Kapan dikirim** | Harian pada `WHATSAPP_REMINDER_TIME` (bawaan 08:00). Dipicu bila ada tugas dengan sisa hari sesuai `WHATSAPP_REMINDER_DAYS` (bawaan H-3, H-1, hari-H) atau keterlambatan kelipatan `WHATSAPP_OVERDUE_EVERY_DAYS` |
 | **Mention** | Chat pribadi ditulis `@Nama PIC`. Bila salinan grup diaktifkan, nomor PIC ditandai sungguhan sehingga notifikasinya masuk ke ponsel yang bersangkutan |
 | **Anti-spam** | Satu digest per orang per hari (dicatat lewat kunci dedupe). Tombol pengingat per task dibatasi 2 kali per 10 menit |
-| **Gateway** | `go_whatsapp` (swakelola, **disarankan**) · `log` (uji coba) · `fonnte` · `wablas` · `cloud_api` (Meta) · `webhook` (bot sendiri) |
+| **Gateway** | `go_whatsapp` atau `waha` (swakelola, **disarankan**) · `log` (uji coba) · `fonnte` · `wablas` · `cloud_api` (Meta) · `webhook` (bot sendiri) |
 | **Riwayat** | Semua pengiriman — termasuk yang gagal & dilewati — tercatat dan bisa ditelusuri dari tab *Pengingat WA* |
-| **Nomor PIC** | Diisi sendiri oleh pengguna di tab *Pengingat WA*, atau oleh Super Admin lewat form pengguna. Format bebas (`0812…`, `+62812…`) — sistem menormalkannya |
+| **Nomor PIC** | Diisi sendiri oleh pengguna di tab *Pengingat WA*, atau oleh Super Admin lewat form pengguna. Format bebas (`0812…`, `+62 812…`, `0812-3456-7890`) — sistem menormalkannya sendiri menjadi `62…` |
+
+> Nomor WhatsApp adalah **data aplikasi, bukan konfigurasi** — disimpan di kolom
+> `users.whatsapp_number` dan diisi lewat antarmuka, bukan ditulis di dalam kode
+> atau `.env`. Dengan begitu nomor pribadi karyawan tidak pernah masuk ke riwayat
+> git, dan tiap orang dapat mengganti atau menonaktifkan notifikasinya sendiri.
 
 Selama `WHATSAPP_ENABLED=false`, **tidak ada pesan yang dikirim ke pihak mana pun**;
 pengingat hanya dicatat di riwayat dengan status *dilewati*. Lihat `.env.example`
@@ -82,14 +87,22 @@ php artisan tasks:remind-whatsapp --force     # abaikan dedupe harian
 > Penjadwal Laravel dijalankan oleh proses `scheduler` di `docker/supervisord.conf`
 > (`php artisan schedule:work`). Tanpa proses itu, pengingat terjadwal tidak pernah jalan.
 
-### Menyiapkan gateway swakelola (`go_whatsapp`)
+### Menyiapkan gateway swakelola
 
-Driver bawaan yang disarankan memakai
-[go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice):
-sebuah layanan Go yang tersambung ke WhatsApp lewat pemindaian QR, sehingga pengingat
-terkirim ke **chat pribadi tiap PIC** dari nomor WhatsApp biasa milik perusahaan —
-tanpa berlangganan penyedia pihak ketiga, dan tanpa batasan jendela 24 jam seperti
+Tersedia dua pilihan gateway swakelola. **Pilih salah satu saja** — keduanya
+tersambung ke WhatsApp lewat pemindaian QR, sehingga pengingat terkirim ke
+**chat pribadi tiap PIC** dari nomor WhatsApp biasa milik perusahaan: tanpa
+berlangganan penyedia pihak ketiga, dan tanpa batasan jendela 24 jam seperti
 Cloud API resmi Meta.
+
+| Driver | Proyek | Pilih bila |
+|--------|--------|-----------|
+| `go_whatsapp` | [go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice) | Instalasi baru — paling ringan, satu container |
+| `waha` | [WAHA — WhatsApp HTTP API](https://github.com/devlikeapro/waha) | WAHA sudah dipakai untuk hal lain (mis. integrasi Chatwoot) |
+
+Panduan di bawah memakai `go_whatsapp`; untuk WAHA, ganti profil compose
+`--profile whatsapp` menjadi `--profile waha`, dan pakai variabel
+`WAHA_BASE_URL` / `WAHA_API_KEY` / `WAHA_SESSION` sebagai ganti `GOWA_*`.
 
 **1. Isi kredensial di `.env.production`**
 
@@ -222,8 +235,8 @@ app/
   Services/           TaskAlertService        hitung alert deadline/prioritas/kadaluarsa
                       TaskWhatsAppReminder    susun & kirim pengingat WhatsApp
                       EvidenceDocumentService template → dokumen → tanda tangan → PDF
-                      WhatsApp/               gateway + driver (log, go_whatsapp, fonnte,
-                                              wablas, cloud_api, webhook)
+                      WhatsApp/               gateway + driver (log, go_whatsapp, waha,
+                                              fonnte, wablas, cloud_api, webhook)
   Support/            PhoneNumber (normalisasi nomor), HtmlSanitizer (saring HTML dokumen)
 config/whatsapp.php   saklar, driver, jadwal & kredensial notifikasi WhatsApp
 database/

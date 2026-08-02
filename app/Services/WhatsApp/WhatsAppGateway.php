@@ -7,6 +7,7 @@ use App\Services\WhatsApp\Drivers\FonnteDriver;
 use App\Services\WhatsApp\Drivers\GoWhatsAppDriver;
 use App\Services\WhatsApp\Drivers\LogDriver;
 use App\Services\WhatsApp\Drivers\WablasDriver;
+use App\Services\WhatsApp\Drivers\WahaDriver;
 use App\Services\WhatsApp\Drivers\WebhookDriver;
 use App\Services\WhatsApp\Drivers\WhatsAppDriver;
 use InvalidArgumentException;
@@ -65,6 +66,7 @@ class WhatsAppGateway
             'wablas'       => new WablasDriver($config, $timeout),
             'cloud_api'    => new CloudApiDriver($config, $timeout),
             'go_whatsapp'  => new GoWhatsAppDriver($config, $timeout),
+            'waha'         => new WahaDriver($config, $timeout),
             'webhook'      => new WebhookDriver($config, $timeout),
             default        => throw new InvalidArgumentException("Driver WhatsApp '{$name}' tidak dikenal."),
         };

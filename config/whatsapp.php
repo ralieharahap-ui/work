@@ -24,6 +24,8 @@ return [
     |   log         — tulis pesan ke log aplikasi (aman untuk uji coba)
     |   go_whatsapp — gateway swakelola go-whatsapp-web-multidevice (login via QR,
     |                 memakai nomor WhatsApp biasa milik perusahaan)
+    |   waha        — gateway swakelola WAHA / WhatsApp HTTP API (juga login via
+    |                 QR; pilih ini bila WAHA sudah dipakai, mis. untuk Chatwoot)
     |   fonnte      — https://fonnte.com (gateway lokal, paling umum di Indonesia)
     |   wablas      — https://wablas.com (gateway lokal)
     |   cloud_api   — WhatsApp Business Cloud API resmi dari Meta
@@ -105,6 +107,19 @@ return [
             'username'  => env('GOWA_USERNAME'),
             'password'  => env('GOWA_PASSWORD'),
             'device_id' => env('GOWA_DEVICE_ID'),
+        ],
+
+        /*
+         | Gateway swakelola WAHA: https://github.com/devlikeapro/waha
+         |
+         | `session` adalah nama sesi WhatsApp di dalam WAHA (bawaan "default").
+         | `api_key` dikirim sebagai header X-Api-Key dan harus sama dengan
+         | WHATSAPP_API_KEY di sisi WAHA.
+         */
+        'waha' => [
+            'base_url' => env('WAHA_BASE_URL'),
+            'api_key'  => env('WAHA_API_KEY'),
+            'session'  => env('WAHA_SESSION', 'default'),
         ],
 
         'fonnte' => [

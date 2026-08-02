@@ -42,7 +42,14 @@ class PhoneNumber
         return strlen($digits) >= 9 && strlen($digits) <= 20 ? $digits : null;
     }
 
-    /** Format ramah-baca untuk antarmuka: 6281234567890 → +62 812-3456-7890 */
+    /**
+     * Format ramah-baca untuk antarmuka, mengikuti kebiasaan penulisan nomor
+     * seluler Indonesia: tiga digit awal (kode operator) dipisah, sisanya
+     * dikelompokkan empat-empat.
+     *
+     *   628192430521  → +62 819-2430-521
+     *   6281234567890 → +62 812-3456-7890
+     */
     public static function pretty(?string $raw, ?string $countryCode = null): ?string
     {
         $n = self::normalize($raw, $countryCode);
@@ -53,12 +60,19 @@ class PhoneNumber
 
         $cc = ltrim((string) ($countryCode ?: config('whatsapp.country_code', '62')), '+');
 
-        if ($cc !== '' && str_starts_with($n, $cc)) {
-            $rest = substr($n, strlen($cc));
-
-            return '+' . $cc . ' ' . trim(chunk_split($rest, 4, '-'), '-');
+        if ($cc === '' || ! str_starts_with($n, $cc)) {
+            return '+' . $n;
         }
 
-        return '+' . $n;
+        $rest = substr($n, strlen($cc));
+
+        if (strlen($rest) <= 3) {
+            return '+' . $cc . ' ' . $rest;
+        }
+
+        $prefix = substr($rest, 0, 3);
+        $body   = trim(chunk_split(substr($rest, 3), 4, '-'), '-');
+
+        return '+' . $cc . ' ' . $prefix . '-' . $body;
     }
 }
