@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { XMarkIcon, CheckIcon, Square2StackIcon, TrashIcon, CheckCircleIcon, PaperClipIcon } from '@heroicons/react/24/outline';
+import {
+    XMarkIcon, CheckIcon, Square2StackIcon, TrashIcon, CheckCircleIcon, PaperClipIcon,
+    DocumentTextIcon, ChatBubbleLeftRightIcon, CheckBadgeIcon,
+} from '@heroicons/react/24/outline';
 import { CATEGORIES, PRIORITIES, KANBAN_EDITABLE_STATUSES, fmtDate } from './constants';
 import CommentThread from './CommentThread';
 
-export default function TaskModal({ onClose, initialData, team, projects, divisions, currentUserId, canEdit, canDelete, onRequestClose }) {
+export default function TaskModal({
+    onClose, initialData, team, projects, divisions, currentUserId,
+    canEdit, canDelete, onRequestClose, onOpenEvidence, onRemind,
+}) {
     const isNew = !initialData;
+    const documents = initialData?.evidence_documents ?? [];
+    const signedDocs = documents.filter((d) => d.is_signed);
 
     const [formData, setFormData] = useState(() => ({
         title: initialData?.title || '',
@@ -180,14 +188,60 @@ export default function TaskModal({ onClose, initialData, team, projects, divisi
                         </div>
                     )}
 
+                    {!isNew && (
+                        <div className="rounded-lg border border-black/10 bg-warm-white p-3 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-[rgba(0,0,0,0.8)] flex items-center gap-1.5">
+                                    <DocumentTextIcon className="w-4 h-4" /> Dokumen Bukti (Evidence)
+                                </span>
+                                <span className="text-[11px] text-warm-500">
+                                    {documents.length} dokumen · {signedDocs.length} bertanda tangan
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-warm-500">
+                                Siapkan berita acara atau kertas kerja dari template, tanda tangani, lalu PDF-nya
+                                otomatis siap dipakai sebagai syarat penutupan task.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenEvidence(initialData)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-notion-blue bg-white border border-black/10 rounded-md hover:bg-notion-blue-badge-bg transition-colors"
+                                >
+                                    <DocumentTextIcon className="w-3.5 h-3.5" /> Buka Ruang Dokumen
+                                </button>
+                                {signedDocs.slice(0, 2).map((doc) => (
+                                    <a
+                                        key={doc.id}
+                                        href={route('evidence-documents.download', doc.id)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                                    >
+                                        <CheckBadgeIcon className="w-3.5 h-3.5" /> {doc.number || doc.title}
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {!isNew && canEdit && initialData.status !== 'Done' && (
-                        <button
-                            type="button"
-                            onClick={() => onRequestClose(initialData)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
-                        >
-                            <CheckIcon className="w-4 h-4" /> Selesaikan Task &amp; Unggah Bukti
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                                type="button"
+                                onClick={() => onRequestClose(initialData)}
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                            >
+                                <CheckIcon className="w-4 h-4" /> Selesaikan Task &amp; Lampirkan Bukti
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!initialData.pic_id}
+                                title={initialData.pic_id ? 'Kirim pengingat WhatsApp ke PIC' : 'Task ini belum punya PIC'}
+                                onClick={() => onRemind(initialData)}
+                                className="sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 disabled:opacity-40 transition-colors"
+                            >
+                                <ChatBubbleLeftRightIcon className="w-4 h-4" /> Ingatkan via WA
+                            </button>
+                        </div>
                     )}
 
                     {!isNew && <CommentThread task={initialData} />}

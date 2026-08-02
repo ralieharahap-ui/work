@@ -41,11 +41,12 @@ class AdminUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|email|unique:users,email',
-            'password'    => 'required|string|min:6',
-            'division_id' => 'nullable|uuid|exists:divisions,id',
-            'role'        => 'required|string|exists:roles,name',
+            'name'            => 'required|string|max:255',
+            'email'           => 'required|email|unique:users,email',
+            'password'        => 'required|string|min:6',
+            'division_id'     => 'nullable|uuid|exists:divisions,id',
+            'role'            => 'required|string|exists:roles,name',
+            'whatsapp_number' => 'nullable|string|max:32',
         ]);
 
         $user = User::create([
@@ -53,6 +54,7 @@ class AdminUserController extends Controller
             'email'           => $data['email'],
             'password'        => Hash::make($data['password']),
             'division_id'     => $data['division_id'] ?? null,
+            'whatsapp_number' => $data['whatsapp_number'] ?: null,
             'organization_id' => auth()->user()->organization_id,
             'is_active'       => true,
         ]);
@@ -67,11 +69,12 @@ class AdminUserController extends Controller
         abort_if($user->organization_id !== auth()->user()->organization_id, 403);
 
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|email|unique:users,email,' . $user->id,
-            'password'    => 'nullable|string|min:6',
-            'division_id' => 'nullable|uuid|exists:divisions,id',
-            'role'        => 'required|string|exists:roles,name',
+            'name'            => 'required|string|max:255',
+            'email'           => 'required|email|unique:users,email,' . $user->id,
+            'password'        => 'nullable|string|min:6',
+            'division_id'     => 'nullable|uuid|exists:divisions,id',
+            'role'            => 'required|string|exists:roles,name',
+            'whatsapp_number' => 'nullable|string|max:32',
         ]);
 
         if ($user->hasRole('super_admin') && $data['role'] !== 'super_admin' && $this->isLastSuperAdmin($user)) {
@@ -79,9 +82,10 @@ class AdminUserController extends Controller
         }
 
         $user->update([
-            'name'        => $data['name'],
-            'email'       => $data['email'],
-            'division_id' => $data['division_id'] ?? null,
+            'name'            => $data['name'],
+            'email'           => $data['email'],
+            'division_id'     => $data['division_id'] ?? null,
+            'whatsapp_number' => $data['whatsapp_number'] ?: null,
             ...(!empty($data['password']) ? ['password' => Hash::make($data['password'])] : []),
         ]);
         $user->syncRoles([$data['role']]);

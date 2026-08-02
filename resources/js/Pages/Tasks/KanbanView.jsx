@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { STATUSES, STATUS_DOT } from './constants';
 import TaskCard from './TaskCard';
 
-export default function KanbanView({ tasks, onEdit, onStatusChange, onCloseRequest, canEdit }) {
+export default function KanbanView({ tasks, onEdit, onStatusChange, onCloseRequest, onRemind, onOpenEvidence, canEdit }) {
     const [filterCat, setFilterCat] = useState('All');
 
     const filteredTasks = useMemo(() => {
@@ -50,6 +50,8 @@ export default function KanbanView({ tasks, onEdit, onStatusChange, onCloseReque
                                         onEdit={() => onEdit(task)}
                                         onStatusChange={(newStatus) => onStatusChange(task, newStatus)}
                                         onCloseRequest={() => onCloseRequest(task)}
+                                        onRemind={() => onRemind(task)}
+                                        onOpenEvidence={() => onOpenEvidence(task)}
                                     />
                                 ))}
                                 {colTasks.length === 0 && (

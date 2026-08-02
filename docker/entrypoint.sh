@@ -94,6 +94,15 @@ echo "==> Menyinkronkan role & permission..."
 php artisan db:seed --class=Database\\Seeders\\RolePermissionSeeder --force || \
   echo "!! Sinkronisasi permission gagal (periksa log)."
 
+# 3a-2) Template dokumen bukti bawaan — SELALU dijalankan, dengan alasan yang
+#       sama seperti permission: instalasi yang datanya sudah terisi melewati
+#       seeding penuh, sehingga template baru/perbaikan tidak akan pernah
+#       sampai. Seeder ini idempoten (dicocokkan lewat kolom `code`) dan hanya
+#       menyentuh template bawaan sistem, bukan template buatan pengguna.
+echo "==> Menyinkronkan template dokumen bukti..."
+php artisan db:seed --class=Database\\Seeders\\EvidenceTemplateSeeder --force || \
+  echo "!! Sinkronisasi template dokumen gagal (periksa log)."
+
 # 3b) Set / reset password admin bila variabel ADMIN_PASSWORD diisi
 if [ -n "${ADMIN_PASSWORD}" ]; then
   echo "==> Menerapkan ADMIN_PASSWORD untuk akun admin..."
