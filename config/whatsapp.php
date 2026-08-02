@@ -21,11 +21,13 @@ return [
     | Driver Pengirim
     |--------------------------------------------------------------------------
     |
-    |   log       — tulis pesan ke log aplikasi (aman untuk uji coba)
-    |   fonnte    — https://fonnte.com (gateway lokal, paling umum di Indonesia)
-    |   wablas    — https://wablas.com (gateway lokal)
-    |   cloud_api — WhatsApp Business Cloud API resmi dari Meta
-    |   webhook   — POST JSON ke URL milik sendiri (mis. bot Baileys/whatsapp-web.js)
+    |   log         — tulis pesan ke log aplikasi (aman untuk uji coba)
+    |   go_whatsapp — gateway swakelola go-whatsapp-web-multidevice (login via QR,
+    |                 memakai nomor WhatsApp biasa milik perusahaan)
+    |   fonnte      — https://fonnte.com (gateway lokal, paling umum di Indonesia)
+    |   wablas      — https://wablas.com (gateway lokal)
+    |   cloud_api   — WhatsApp Business Cloud API resmi dari Meta
+    |   webhook     — POST JSON ke URL milik sendiri (mis. bot Baileys/whatsapp-web.js)
     |
     */
 
@@ -89,6 +91,21 @@ return [
     */
 
     'drivers' => [
+
+        /*
+         | Gateway swakelola: https://github.com/aldinokemal/go-whatsapp-web-multidevice
+         |
+         | Dijalankan sebagai layanan terpisah (lihat docker-compose.prod.yml),
+         | tersambung ke WhatsApp lewat pemindaian QR sekali di dasbornya.
+         | `device_id` hanya perlu diisi bila gateway melayani lebih dari satu
+         | perangkat/nomor.
+         */
+        'go_whatsapp' => [
+            'base_url'  => env('GOWA_BASE_URL'),
+            'username'  => env('GOWA_USERNAME'),
+            'password'  => env('GOWA_PASSWORD'),
+            'device_id' => env('GOWA_DEVICE_ID'),
+        ],
 
         'fonnte' => [
             'endpoint' => env('FONNTE_ENDPOINT', 'https://api.fonnte.com/send'),

@@ -4,6 +4,7 @@ namespace App\Services\WhatsApp;
 
 use App\Services\WhatsApp\Drivers\CloudApiDriver;
 use App\Services\WhatsApp\Drivers\FonnteDriver;
+use App\Services\WhatsApp\Drivers\GoWhatsAppDriver;
 use App\Services\WhatsApp\Drivers\LogDriver;
 use App\Services\WhatsApp\Drivers\WablasDriver;
 use App\Services\WhatsApp\Drivers\WebhookDriver;
@@ -59,12 +60,13 @@ class WhatsAppGateway
         $timeout = (int) config('whatsapp.timeout', 20);
 
         return match ($name) {
-            'log'       => new LogDriver(),
-            'fonnte'    => new FonnteDriver($config, $timeout),
-            'wablas'    => new WablasDriver($config, $timeout),
-            'cloud_api' => new CloudApiDriver($config, $timeout),
-            'webhook'   => new WebhookDriver($config, $timeout),
-            default     => throw new InvalidArgumentException("Driver WhatsApp '{$name}' tidak dikenal."),
+            'log'          => new LogDriver(),
+            'fonnte'       => new FonnteDriver($config, $timeout),
+            'wablas'       => new WablasDriver($config, $timeout),
+            'cloud_api'    => new CloudApiDriver($config, $timeout),
+            'go_whatsapp'  => new GoWhatsAppDriver($config, $timeout),
+            'webhook'      => new WebhookDriver($config, $timeout),
+            default        => throw new InvalidArgumentException("Driver WhatsApp '{$name}' tidak dikenal."),
         };
     }
 }

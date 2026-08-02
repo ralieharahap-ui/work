@@ -63,7 +63,7 @@ tugas per kategori: *terlambat*, *jatuh tempo hari ini*, dan *mendekati tenggat*
 | **Kapan dikirim** | Harian pada `WHATSAPP_REMINDER_TIME` (bawaan 08:00). Dipicu bila ada tugas dengan sisa hari sesuai `WHATSAPP_REMINDER_DAYS` (bawaan H-3, H-1, hari-H) atau keterlambatan kelipatan `WHATSAPP_OVERDUE_EVERY_DAYS` |
 | **Mention** | Chat pribadi ditulis `@Nama PIC`. Bila salinan grup diaktifkan, nomor PIC ditandai sungguhan sehingga notifikasinya masuk ke ponsel yang bersangkutan |
 | **Anti-spam** | Satu digest per orang per hari (dicatat lewat kunci dedupe). Tombol pengingat per task dibatasi 2 kali per 10 menit |
-| **Gateway** | `log` (uji coba, hanya menulis ke log) · `fonnte` · `wablas` · `cloud_api` (Meta) · `webhook` (bot sendiri) |
+| **Gateway** | `go_whatsapp` (swakelola, **disarankan**) · `log` (uji coba) · `fonnte` · `wablas` · `cloud_api` (Meta) · `webhook` (bot sendiri) |
 | **Riwayat** | Semua pengiriman — termasuk yang gagal & dilewati — tercatat dan bisa ditelusuri dari tab *Pengingat WA* |
 | **Nomor PIC** | Diisi sendiri oleh pengguna di tab *Pengingat WA*, atau oleh Super Admin lewat form pengguna. Format bebas (`0812…`, `+62812…`) — sistem menormalkannya |
 
@@ -81,6 +81,54 @@ php artisan tasks:remind-whatsapp --force     # abaikan dedupe harian
 
 > Penjadwal Laravel dijalankan oleh proses `scheduler` di `docker/supervisord.conf`
 > (`php artisan schedule:work`). Tanpa proses itu, pengingat terjadwal tidak pernah jalan.
+
+### Menyiapkan gateway swakelola (`go_whatsapp`)
+
+Driver bawaan yang disarankan memakai
+[go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice):
+sebuah layanan Go yang tersambung ke WhatsApp lewat pemindaian QR, sehingga pengingat
+terkirim ke **chat pribadi tiap PIC** dari nomor WhatsApp biasa milik perusahaan —
+tanpa berlangganan penyedia pihak ketiga, dan tanpa batasan jendela 24 jam seperti
+Cloud API resmi Meta.
+
+**1. Isi kredensial di `.env.production`**
+
+```bash
+WHATSAPP_ENABLED=true
+WHATSAPP_DRIVER=go_whatsapp
+GOWA_BASE_URL=http://whatsapp:3000     # alamat internal antar-container
+GOWA_USERNAME=gepbot
+GOWA_PASSWORD=<password kuat & acak>
+```
+
+`GOWA_USERNAME`/`GOWA_PASSWORD` dipakai dua arah: menjadi `APP_BASIC_AUTH` yang
+melindungi REST API gateway, sekaligus kredensial yang dipakai aplikasi untuk
+memanggilnya.
+
+**2. Nyalakan layanannya** (pakai profil compose `whatsapp`)
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile whatsapp up -d --build
+```
+
+**3. Pindai QR sekali** untuk menyambungkan nomor perusahaan. Port gateway sengaja
+tidak dipublikasikan ke internet — sesi WhatsApp perusahaan tidak boleh bisa
+dijangkau publik. Buka dasbornya lewat terowongan SSH:
+
+```bash
+ssh -L 3000:127.0.0.1:3000 user@server
+# lalu buka http://127.0.0.1:3000 di peramban lokal
+```
+
+**4. Uji** lewat tab *Pengingat WA* → tombol **Uji**, atau dari terminal:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app php artisan tasks:remind-whatsapp --dry-run
+```
+
+> Sesi WhatsApp tersimpan di volume `gowa_storage`. **Jangan hapus volume itu** —
+> menghapusnya berarti harus memindai ulang QR dan menyambungkan nomornya dari awal.
 
 ---
 
@@ -174,7 +222,8 @@ app/
   Services/           TaskAlertService        hitung alert deadline/prioritas/kadaluarsa
                       TaskWhatsAppReminder    susun & kirim pengingat WhatsApp
                       EvidenceDocumentService template → dokumen → tanda tangan → PDF
-                      WhatsApp/               gateway + driver (log, fonnte, wablas, cloud_api, webhook)
+                      WhatsApp/               gateway + driver (log, go_whatsapp, fonnte,
+                                              wablas, cloud_api, webhook)
   Support/            PhoneNumber (normalisasi nomor), HtmlSanitizer (saring HTML dokumen)
 config/whatsapp.php   saklar, driver, jadwal & kredensial notifikasi WhatsApp
 database/

@@ -30,6 +30,19 @@ services:
       QUEUE_CONNECTION: sync
       TRUSTED_PROXIES: "*"
       SEED_ON_DEPLOY: ${SEED_ON_DEPLOY:-true}
+      # Pengingat tugas via WhatsApp — bawaan mati sampai gateway siap.
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+      WHATSAPP_DRIVER: ${WHATSAPP_DRIVER:-go_whatsapp}
+      WHATSAPP_REMINDER_TIME: ${WHATSAPP_REMINDER_TIME:-08:00}
+      WHATSAPP_REMINDER_DAYS: ${WHATSAPP_REMINDER_DAYS:-3,1,0}
+      WHATSAPP_OVERDUE_EVERY_DAYS: ${WHATSAPP_OVERDUE_EVERY_DAYS:-1}
+      WHATSAPP_GROUP_ENABLED: ${WHATSAPP_GROUP_ENABLED:-false}
+      WHATSAPP_GROUP_ID: ${WHATSAPP_GROUP_ID:-}
+      # Alamat internal gateway; tidak perlu diekspos ke internet.
+      GOWA_BASE_URL: ${GOWA_BASE_URL:-http://whatsapp:3000}
+      GOWA_USERNAME: ${GOWA_USERNAME:-}
+      GOWA_PASSWORD: ${GOWA_PASSWORD:-}
+      GOWA_DEVICE_ID: ${GOWA_DEVICE_ID:-}
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +69,43 @@ services:
       timeout: 5s
       retries: 30
 
+  # ── Gateway WhatsApp swakelola ────────────────────────────────────────
+  # https://github.com/aldinokemal/go-whatsapp-web-multidevice
+  #
+  # Tersambung ke WhatsApp lewat pemindaian QR (nomor WhatsApp biasa milik
+  # perusahaan), lalu aplikasi mengirim pengingat ke nomor pribadi tiap PIC
+  # melalui REST API-nya. Aktifkan dengan profil `whatsapp`:
+  #
+  #   docker compose --env-file .env.production -f docker-compose.prod.yml \
+  #     --profile whatsapp up -d --build
+  #
+  # Pemindaian QR pertama kali: buka dasborn gateway lewat terowongan SSH
+  # (aman, tanpa membuka port ke internet):
+  #
+  #   ssh -L 3000:127.0.0.1:3000 user@server
+  #   lalu buka http://127.0.0.1:3000 di peramban lokal
+  whatsapp:
+    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
+    restart: unless-stopped
+    profiles: ["whatsapp"]
+    environment:
+      APP_PORT: "3000"
+      APP_HOST: 0.0.0.0
+      APP_DEBUG: "false"
+      # Wajib diisi: pelindung REST API gateway (format user:pass).
+      APP_BASIC_AUTH: ${GOWA_USERNAME}:${GOWA_PASSWORD}
+      DB_URI: file:storages/whatsapp.db?_foreign_keys=on
+      WHATSAPP_ACCOUNT_VALIDATION: "true"
+      WHATSAPP_AUTO_REPLY: ""
+    volumes:
+      - gowa_storage:/app/storages
+    networks: [gepnet]
+    # Sengaja TIDAK dipublikasikan ke host: sesi WhatsApp perusahaan tidak boleh
+    # dapat dijangkau dari internet. Akses dasbornya lewat terowongan SSH di atas.
+    # Bila memang perlu, buka hanya ke localhost server:
+    # ports:
+    #   - "127.0.0.1:3000:3000"
+
   # HTTPS otomatis untuk domain Anda (Let's Encrypt). Butuh domain diarahkan ke IP server.
   caddy:
     image: caddy:2-alpine
@@ -80,3 +130,6 @@ volumes:
   dbdata:
   caddy_data:
   caddy_config:
+  # Sesi WhatsApp gateway — JANGAN dihapus, menghapusnya berarti harus
+  # memindai ulang QR dan menyambungkan nomornya dari awal.
+  gowa_storage:
