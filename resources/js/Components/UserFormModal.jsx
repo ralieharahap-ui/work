@@ -24,6 +24,7 @@ export default function UserFormModal({ onClose, initialData, divisions, roles, 
         password: '',
         division_id: initialData?.division_id || '',
         role: initialData?.role || roles?.[0] || 'drafter',
+        whatsapp_number: initialData?.whatsapp_number || '',
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -87,6 +88,18 @@ export default function UserFormModal({ onClose, initialData, divisions, roles, 
                     <div>
                         <label className={cls.label}>Email *</label>
                         <input required type="email" name="email" value={formData.email} onChange={handleChange} className={cls.input} placeholder="nama@pt-gep.com" />
+                    </div>
+                    <div>
+                        <label className={cls.label}>Nomor WhatsApp</label>
+                        <input
+                            type="tel"
+                            name="whatsapp_number"
+                            value={formData.whatsapp_number}
+                            onChange={handleChange}
+                            className={cls.input}
+                            placeholder="0812-3456-7890"
+                        />
+                        <p className={cls.hint}>Dipakai untuk mengirim pengingat tenggat tugas lewat WhatsApp.</p>
                     </div>
                     <div>
                         <label className={cls.label}>Divisi</label>

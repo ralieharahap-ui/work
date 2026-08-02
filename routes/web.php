@@ -3,6 +3,9 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EvidenceDocumentController;
+use App\Http\Controllers\EvidenceTemplateController;
+use App\Http\Controllers\WhatsAppReminderController;
 use App\Http\Controllers\PalmOilSourceController;
 use App\Http\Controllers\UnloadingPointController;
 use App\Http\Controllers\JettyPointController;
@@ -104,5 +107,24 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/task-projects',                [TaskProjectController::class, 'store'])->name('task-projects.store');
         Route::put('/task-projects/{taskProject}',    [TaskProjectController::class, 'update'])->name('task-projects.update');
         Route::delete('/task-projects/{taskProject}', [TaskProjectController::class, 'destroy'])->name('task-projects.destroy');
+
+        // ── Dokumen bukti (evidence): template, kertas kerja, tanda tangan → PDF ──
+        Route::post('/tasks/{task}/evidence-documents', [EvidenceDocumentController::class, 'store'])->name('evidence-documents.store');
+        Route::put('/evidence-documents/{document}',           [EvidenceDocumentController::class, 'update'])->name('evidence-documents.update');
+        Route::post('/evidence-documents/{document}/sign',     [EvidenceDocumentController::class, 'sign'])->name('evidence-documents.sign');
+        Route::get('/evidence-documents/{document}/print',     [EvidenceDocumentController::class, 'print'])->name('evidence-documents.print');
+        Route::get('/evidence-documents/{document}/pdf',       [EvidenceDocumentController::class, 'download'])->name('evidence-documents.download');
+        Route::delete('/evidence-documents/{document}',        [EvidenceDocumentController::class, 'destroy'])->name('evidence-documents.destroy');
+
+        Route::post('/evidence-templates',                        [EvidenceTemplateController::class, 'store'])->name('evidence-templates.store');
+        Route::post('/evidence-templates/{template}/duplicate',   [EvidenceTemplateController::class, 'duplicate'])->name('evidence-templates.duplicate');
+        Route::put('/evidence-templates/{template}',              [EvidenceTemplateController::class, 'update'])->name('evidence-templates.update');
+        Route::delete('/evidence-templates/{template}',           [EvidenceTemplateController::class, 'destroy'])->name('evidence-templates.destroy');
+
+        // ── Pengingat WhatsApp ──────────────────────────────────────────────
+        Route::post('/tasks/{task}/remind-whatsapp', [WhatsAppReminderController::class, 'remindTask'])->name('tasks.remind');
+        Route::post('/whatsapp-reminders/run',       [WhatsAppReminderController::class, 'runDigest'])->name('whatsapp.run');
+        Route::post('/whatsapp-reminders/test',      [WhatsAppReminderController::class, 'sendTest'])->name('whatsapp.test');
+        Route::patch('/whatsapp-reminders/contact',  [WhatsAppReminderController::class, 'updateContact'])->name('whatsapp.contact');
     });
 });

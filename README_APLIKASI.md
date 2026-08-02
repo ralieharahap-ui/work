@@ -30,10 +30,12 @@ Workspace task management tim bergaya **Notion** (netral hangat, border tipis, N
 | **Super admin kelola akses** | Super Admin dapat **buat / edit / hapus** akun & role pengguna lain — dari tab *Tim* maupun halaman *Manajemen User*. Super Admin terakhir dilindungi agar tidak bisa dihapus/diturunkan |
 | **Interaksi antar user** | Setiap task punya thread diskusi; semua anggota yang punya akses dapat berkomentar |
 | **Alert deadline & prioritas** | Banner peringatan 3 kelompok: **Kadaluarsa**, **Mendekati Tenggat** (≤3 hari), dan **Prioritas Tinggi/Urgent** — plus badge merah di sidebar |
-| **Wajib bukti saat closing** | Status `Done` hanya bisa dicapai lewat modal *Selesaikan Task* yang **mewajibkan unggah dokumen evidence** (PDF/gambar/dokumen, maks 10MB). Divalidasi di server, bukan hanya di UI |
+| **Wajib bukti saat closing** | Status `Done` hanya bisa dicapai lewat modal *Selesaikan Task* yang **mewajibkan dokumen evidence** — berupa berkas unggahan (PDF/gambar/dokumen, maks 10MB) **atau** PDF dokumen bukti yang dibuat & ditandatangani di dalam aplikasi. Divalidasi di server, bukan hanya di UI |
+| **Pengingat WhatsApp** | Pengingat otomatis harian ke PIC untuk task yang mendekati tenggat atau sudah kadaluarsa, dengan **mention nama PIC** di dalam chat |
+| **Dokumen bukti & kertas kerja** | Template berita acara / kertas kerja yang bisa **disunting, dicetak, dan ditandatangani PIC** — otomatis dibekukan menjadi PDF dan siap dilampirkan sebagai syarat penutupan task |
 | **Akses semua perangkat** | Login email + password, layout responsif (drawer di HP/tablet, sidebar di desktop) |
 
-**Tab yang tersedia:** Papan Kanban · Dashboard · Proyek · Tim
+**Tab yang tersedia:** Papan Kanban · Dashboard · Proyek · Dokumen Bukti · Pengingat WA · Tim
 
 **Peran (role) & hak akses:**
 
@@ -47,6 +49,65 @@ Workspace task management tim bergaya **Notion** (netral hangat, border tipis, N
 
 > Menutup task menyimpan file bukti ke `storage/app/public/task-evidence/`.
 > Jalankan `php artisan storage:link` sekali agar file dapat diakses dari browser.
+
+---
+
+## 🔔 Pengingat Tugas via WhatsApp (`tab Pengingat WA`)
+
+Setiap hari pada jam yang ditentukan, aplikasi mengirim satu pesan ringkas ke tiap PIC
+yang punya tugas mendesak. Isi pesannya membuka dengan **mention nama PIC** lalu merinci
+tugas per kategori: *terlambat*, *jatuh tempo hari ini*, dan *mendekati tenggat*.
+
+| Hal | Keterangan |
+|-----|-----------|
+| **Kapan dikirim** | Harian pada `WHATSAPP_REMINDER_TIME` (bawaan 08:00). Dipicu bila ada tugas dengan sisa hari sesuai `WHATSAPP_REMINDER_DAYS` (bawaan H-3, H-1, hari-H) atau keterlambatan kelipatan `WHATSAPP_OVERDUE_EVERY_DAYS` |
+| **Mention** | Chat pribadi ditulis `@Nama PIC`. Bila salinan grup diaktifkan, nomor PIC ditandai sungguhan sehingga notifikasinya masuk ke ponsel yang bersangkutan |
+| **Anti-spam** | Satu digest per orang per hari (dicatat lewat kunci dedupe). Tombol pengingat per task dibatasi 2 kali per 10 menit |
+| **Gateway** | `log` (uji coba, hanya menulis ke log) · `fonnte` · `wablas` · `cloud_api` (Meta) · `webhook` (bot sendiri) |
+| **Riwayat** | Semua pengiriman — termasuk yang gagal & dilewati — tercatat dan bisa ditelusuri dari tab *Pengingat WA* |
+| **Nomor PIC** | Diisi sendiri oleh pengguna di tab *Pengingat WA*, atau oleh Super Admin lewat form pengguna. Format bebas (`0812…`, `+62812…`) — sistem menormalkannya |
+
+Selama `WHATSAPP_ENABLED=false`, **tidak ada pesan yang dikirim ke pihak mana pun**;
+pengingat hanya dicatat di riwayat dengan status *dilewati*. Lihat `.env.example`
+untuk daftar variabel lengkapnya.
+
+Kirim manual dari terminal:
+
+```bash
+php artisan tasks:remind-whatsapp --dry-run   # lihat isi pesannya tanpa mengirim
+php artisan tasks:remind-whatsapp             # kirim sungguhan
+php artisan tasks:remind-whatsapp --force     # abaikan dedupe harian
+```
+
+> Penjadwal Laravel dijalankan oleh proses `scheduler` di `docker/supervisord.conf`
+> (`php artisan schedule:work`). Tanpa proses itu, pengingat terjadwal tidak pernah jalan.
+
+---
+
+## 📄 Pemenuhan Dokumen Evidence (`tab Dokumen Bukti`)
+
+Alur lengkap dari template sampai menjadi syarat penutupan task:
+
+1. **Pilih template** dari dalam sebuah task (ikon dokumen di kartu Kanban, atau tombol
+   *Buka Ruang Dokumen* di modal task). Data task — judul, PIC, divisi, proyek, tenggat,
+   checklist — otomatis mengisi dokumen lewat penanda `{{...}}`.
+2. **Sunting** isi dan kertas kerjanya dengan editor (teks tebal/miring, judul, daftar,
+   tabel, perataan) beserta kolom isian tambahan milik template.
+3. **Cetak / pratinjau** di tab baru — tampilannya sudah berbentuk lembar A4 siap cetak.
+4. **Tanda tangani** lewat kanvas tanda tangan (jari, stylus, atau mouse). Setelah
+   ditandatangani, dokumen **dibekukan** (tidak bisa diubah lagi) dan **otomatis menjadi PDF**.
+5. **Jadikan bukti & tutup task** — PDF-nya langsung dipakai sebagai evidence penutupan.
+
+**Template bawaan:** Berita Acara Penyelesaian Pekerjaan · Berita Acara Serah Terima Dokumen ·
+Kertas Kerja Pemeriksaan · Kertas Kerja Monitoring Progres (landscape) ·
+Laporan Pelaksanaan Tugas · Daftar Simak (Checklist) Verifikasi.
+
+Template bawaan bersifat baca-saja; **duplikasikan** dulu untuk membuat versi milik
+organisasi yang bisa disesuaikan (Super Admin / Manajer / Reviewer).
+
+> Yang boleh menandatangani: **PIC task tersebut**, atau Super Admin / Manajer / Reviewer.
+> Isi dokumen selalu disaring di server (daftar putih tag & atribut HTML) sebelum
+> disimpan, dicetak, maupun dirender ke PDF.
 
 ---
 
@@ -103,22 +164,36 @@ npm run build     # atau: npm run dev (mode pengembangan)
 
 ```
 app/
+  Console/Commands/   SendTaskWhatsAppReminders (perintah tasks:remind-whatsapp)
   Http/Controllers/   DashboardController, PalmOilSourceController, UnloadingPointController, AuthController,
-                      TaskController, TaskProjectController, TaskCommentController, AdminUserController
+                      TaskController, TaskProjectController, TaskCommentController, AdminUserController,
+                      EvidenceDocumentController, EvidenceTemplateController, WhatsAppReminderController
   Models/             PalmOilSource, UnloadingPoint, PawmPLTU, User, Organization, Division,
-                      Task, TaskProject, TaskChecklistItem, TaskComment ...
-  Services/           TaskAlertService (hitung alert deadline/prioritas/kadaluarsa)
+                      Task, TaskProject, TaskChecklistItem, TaskComment,
+                      EvidenceTemplate, EvidenceDocument, WhatsappNotification ...
+  Services/           TaskAlertService        hitung alert deadline/prioritas/kadaluarsa
+                      TaskWhatsAppReminder    susun & kirim pengingat WhatsApp
+                      EvidenceDocumentService template → dokumen → tanda tangan → PDF
+                      WhatsApp/               gateway + driver (log, fonnte, wablas, cloud_api, webhook)
+  Support/            PhoneNumber (normalisasi nomor), HtmlSanitizer (saring HTML dokumen)
+config/whatsapp.php   saklar, driver, jadwal & kredensial notifikasi WhatsApp
 database/
-  migrations/         skema tabel (organizations, users, palm_oil_sources, unloading_points, tasks, ...)
-  seeders/            data contoh (admin, sumber, titik bongkar, PLTU, task demo)
+  migrations/         skema tabel (organizations, users, palm_oil_sources, unloading_points, tasks,
+                      whatsapp_notifications, evidence_templates, evidence_documents, ...)
+  seeders/            data contoh (admin, sumber, titik bongkar, PLTU, task demo) + template dokumen bawaan
 resources/js/
   Components/MapViewer.jsx        komponen peta Leaflet (3 jenis marker)
   Components/UserFormModal.jsx    modal buat/edit pengguna (dipakai Tasks & Admin)
+  Components/RichTextEditor.jsx   editor isi dokumen & kertas kerja
+  Components/SignaturePad.jsx     kanvas tanda tangan (mouse/stylus/sentuh)
   Pages/Dashboard/                dashboard + peta
-  Pages/Tasks/                    modul manajemen tugas (Kanban, Dashboard, Proyek, Tim, modal)
+  Pages/Tasks/                    modul manajemen tugas (Kanban, Dashboard, Proyek, Dokumen Bukti,
+                                  Pengingat WA, Tim, beserta modalnya)
   Pages/PalmOilSources/           CRUD sumber cangkang
   Pages/UnloadingPoints/          CRUD titik bongkar (customer)
+resources/views/evidence/document.blade.php   tata letak dokumen untuk cetak & PDF
 routes/web.php        seluruh route
+routes/console.php    penjadwalan pengingat WhatsApp harian
 ```
 
 ---
@@ -128,8 +203,13 @@ routes/web.php        seluruh route
 - Database dev: MySQL `gep_erp`, user `root` tanpa password (default Laragon), lihat `.env`.
 - Session & cache: driver `file` (tanpa Redis).
 - Folder tidak boleh mengandung karakter `#` (kendala Vite).
+- Notifikasi WhatsApp mati secara bawaan (`WHATSAPP_ENABLED=false`) — isi kredensial gateway
+  di `.env` sebelum menyalakannya. Daftar variabelnya ada di `.env.example`.
+- PDF dokumen bukti dihasilkan `barryvdh/laravel-dompdf` (butuh ekstensi PHP `dom`, `mbstring`, `gd` —
+  ketiganya sudah ada di image Docker aplikasi ini).
 
 ---
 
-**Versi:** 2.0 · Modul Sumber Cangkang + Titik Bongkar + Peta
+**Versi:** 2.1 · Modul Sumber Cangkang + Titik Bongkar + Peta + Manajemen Tugas
+(pengingat WhatsApp & pemenuhan dokumen evidence)
 **Dibuat untuk:** PT Geosys Energi Prima
