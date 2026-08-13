@@ -187,6 +187,35 @@ organisasi yang bisa disesuaikan (Super Admin / Manajer / Reviewer).
 
 ---
 
+## 🤖 Asisten AI — Pegawai Kantor Digital (`/agent`)
+
+Modul asisten yang menerima pekerjaan dengan bahasa biasa, **merencanakan**,
+**mengerjakannya lewat tool**, **memeriksa hasilnya**, lalu **menyimpan pengalamannya**
+supaya pekerjaan berikutnya lebih cepat dan lebih jarang salah. Bisa diperintah lewat
+dasbor maupun **chat Telegram**.
+
+- Tulis pekerjaan seperti *"Buat laporan penjualan bulan ini dari penjualan-2026-08.csv"* —
+  agent menyusun rencana bertahap, menjalankan tool, dan menghasilkan berkas yang bisa diunduh.
+- Tindakan berdampak keluar (kirim email, buat agenda, kirim WhatsApp) **selalu berhenti
+  meminta persetujuan** Anda lebih dulu.
+- Setiap keputusan terekam pada jejak audit: memori apa yang dipakai, rencana apa yang
+  disusun, tool apa yang dipanggil, dan pemeriksaan apa yang lolos.
+- Saat pertama dijalankan, agent **menjelaskan akses yang dibutuhkannya** (Telegram, email,
+  kalender, Microsoft 365) beserta cara memberikannya — dan tetap bekerja dengan kemampuan
+  tersisa bila salah satunya ditolak.
+
+```bash
+php artisan agent:setup --interactive   # panduan + pemberian akses
+php artisan agent:demo --fresh          # demo: pekerjaan #2 memakai pengalaman pekerjaan #1
+php artisan agent:telegram --poll       # jalankan chatbot Telegram (mode pengembangan)
+```
+
+> Agent berjalan penuh **tanpa kunci API mana pun** (perencana heuristik lokal).
+> Mengisi `ANTHROPIC_API_KEY` mengalihkan pemahaman & perencanaan ke Claude tanpa
+> mengubah kode. Rinciannya: **[docs/ASISTEN_AI.md](docs/ASISTEN_AI.md)**.
+
+---
+
 ## 🔑 Login Demo
 
 ```
@@ -240,13 +269,22 @@ npm run build     # atau: npm run dev (mode pengembangan)
 
 ```
 app/
-  Console/Commands/   SendTaskWhatsAppReminders (perintah tasks:remind-whatsapp)
+  Agent/              mesin asisten AI — Runtime (loop), Planning, Execution, Verification,
+                      Reflection, Memory (4 lapis + redaksi), Policy, Tools (13 tool),
+                      Llm (scripted/anthropic), Integrations (akses tool), Channels/Telegram
+  Console/Commands/   SendTaskWhatsAppReminders (tasks:remind-whatsapp)
+                      AgentSetup · AgentRun · AgentTick · AgentTelegram · AgentDemo
   Http/Controllers/   DashboardController, PalmOilSourceController, UnloadingPointController, AuthController,
                       TaskController, TaskProjectController, TaskCommentController, AdminUserController,
-                      EvidenceDocumentController, EvidenceTemplateController, WhatsAppReminderController
+                      EvidenceDocumentController, EvidenceTemplateController, WhatsAppReminderController,
+                      Agent/ (AgentTaskController, AgentApprovalController, AgentIntegrationController,
+                              TelegramWebhookController)
   Models/             PalmOilSource, UnloadingPoint, PawmPLTU, User, Organization, Division,
                       Task, TaskProject, TaskChecklistItem, TaskComment,
-                      EvidenceTemplate, EvidenceDocument, WhatsappNotification ...
+                      EvidenceTemplate, EvidenceDocument, WhatsappNotification,
+                      Agent, AgentTask, AgentTaskStep, AgentEvent, AgentToolExecution,
+                      AgentToolStat, AgentApproval, AgentExperience, AgentLesson,
+                      AgentProcedure, AgentMemory, AgentIntegration, AgentConversation
   Services/           TaskAlertService        hitung alert deadline/prioritas/kadaluarsa
                       TaskWhatsAppReminder    susun & kirim pengingat WhatsApp
                       EvidenceDocumentService template → dokumen → tanda tangan → PDF
@@ -254,6 +292,7 @@ app/
                                               fonnte, wablas, cloud_api, webhook)
   Support/            PhoneNumber (normalisasi nomor), HtmlSanitizer (saring HTML dokumen)
 config/whatsapp.php   saklar, driver, jadwal & kredensial notifikasi WhatsApp
+config/agent.php      penyedia LLM, batas eksekusi, kebijakan risiko, memori, tool, Telegram
 database/
   migrations/         skema tabel (organizations, users, palm_oil_sources, unloading_points, tasks,
                       whatsapp_notifications, evidence_templates, evidence_documents, ...)
@@ -268,9 +307,12 @@ resources/js/
                                   Pengingat WA, Tim, beserta modalnya)
   Pages/PalmOilSources/           CRUD sumber cangkang
   Pages/UnloadingPoints/          CRUD titik bongkar (customer)
+  Pages/Agent/                    dasbor asisten AI (Pekerjaan, Memori, Akses Tools, Kemampuan)
 resources/views/evidence/document.blade.php   tata letak dokumen untuk cetak & PDF
 routes/web.php        seluruh route
-routes/console.php    penjadwalan pengingat WhatsApp harian
+routes/console.php    penjadwalan pengingat WhatsApp harian + denyut kerja agent tiap menit
+docs/ASISTEN_AI.md    dokumentasi lengkap asisten AI (arsitektur, memori, keamanan, demo)
+tests/                pengujian (50 test): loop agent, pembelajaran, kebijakan, tool, Telegram, web
 ```
 
 ---
@@ -282,11 +324,14 @@ routes/console.php    penjadwalan pengingat WhatsApp harian
 - Folder tidak boleh mengandung karakter `#` (kendala Vite).
 - Notifikasi WhatsApp mati secara bawaan (`WHATSAPP_ENABLED=false`) — isi kredensial gateway
   di `.env` sebelum menyalakannya. Daftar variabelnya ada di `.env.example`.
+- Asisten AI aktif secara bawaan dengan perencana lokal (`AGENT_LLM_PROVIDER=scripted`) —
+  tanpa kunci API dan tanpa panggilan jaringan. Chatbot Telegram baru menyala setelah
+  tokennya diisi lewat `agent:setup` atau menu Akses Tools.
 - PDF dokumen bukti dihasilkan `barryvdh/laravel-dompdf` (butuh ekstensi PHP `dom`, `mbstring`, `gd` —
   ketiganya sudah ada di image Docker aplikasi ini).
 
 ---
 
-**Versi:** 2.1 · Modul Sumber Cangkang + Titik Bongkar + Peta + Manajemen Tugas
-(pengingat WhatsApp & pemenuhan dokumen evidence)
+**Versi:** 2.2 · Modul Sumber Cangkang + Titik Bongkar + Peta + Manajemen Tugas
+(pengingat WhatsApp & pemenuhan dokumen evidence) + Asisten AI (agent + chatbot Telegram)
 **Dibuat untuk:** PT Geosys Energi Prima

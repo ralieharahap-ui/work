@@ -139,6 +139,23 @@ export function UsersColorIcon({ className = 'w-6 h-6' }) {
     );
 }
 
+// 🤖 Asisten AI — kepala robot dengan kilau "berpikir"
+export function AgentIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 5v5" stroke="#38BDF8" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="24" cy="4.5" r="2.2" fill="#38BDF8" />
+            <rect x="8" y="11" width="32" height="24" rx="7" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <circle cx="18" cy="22" r="3.2" fill="#38BDF8" />
+            <circle cx="30" cy="22" r="3.2" fill="#38BDF8" />
+            <path d="M18 29h12" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M6 20v6M42 20v6" stroke="#64748B" strokeWidth="2.4" strokeLinecap="round" />
+            <path d="M15 40h18" stroke="#475569" strokeWidth="2" strokeLinecap="round" />
+            <path d="M36.5 6.5l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3z" fill="#A78BFA" />
+        </svg>
+    );
+}
+
 // ✅ Manajemen Tugas — papan kanban dengan kartu tercentang
 export function TaskBoardIcon({ className = 'w-6 h-6' }) {
     return (

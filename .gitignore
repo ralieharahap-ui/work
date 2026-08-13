@@ -7,13 +7,18 @@
 /storage/framework/cache/data/*
 /storage/framework/sessions/*
 /storage/framework/views/*
+/storage/framework/testing/*
 /storage/logs/*
+# Ruang kerja asisten AI: dokumen & draf hasil kerja agent bersifat data,
+# bukan bagian dari kode aplikasi.
+/storage/app/agent
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
 .env
 .env.backup
 .env.production
 .phpunit.result.cache
+/.phpunit.cache
 npm-debug.log
 yarn-error.log
 *.rar

@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\Agent\AgentApprovalController;
+use App\Http\Controllers\Agent\AgentIntegrationController;
+use App\Http\Controllers\Agent\AgentTaskController;
+use App\Http\Controllers\Agent\TelegramWebhookController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceDocumentController;
@@ -23,6 +27,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// ── Webhook chatbot Telegram ──────────────────────────────────────────────
+// Tanpa sesi: keabsahannya dijaga rahasia pada URL + header rahasia Telegram.
+Route::post('/agent/telegram/webhook/{organization}/{secret}', TelegramWebhookController::class)
+    ->name('agent.telegram.webhook');
 
 // ── Protected ─────────────────────────────────────────────
 Route::middleware(['auth', 'active'])->group(function () {
@@ -89,6 +98,34 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/{user}',         [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
         Route::patch('/{user}/activate', [AdminUserController::class, 'activate'])->name('admin.users.activate');
         Route::patch('/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('admin.users.deactivate');
+    });
+
+    // ── Asisten AI (agent) ──────────────────────────────────────────────
+    Route::middleware('permission:agent.view')->group(function () {
+        Route::get('/agent', [AgentTaskController::class, 'index'])->name('agent.index');
+
+        Route::post('/agent/tasks', [AgentTaskController::class, 'store'])
+            ->middleware('permission:agent.create')->name('agent.tasks.store');
+
+        Route::post('/agent/tasks/{task}/run',    [AgentTaskController::class, 'rerun'])->name('agent.tasks.run');
+        Route::post('/agent/tasks/{task}/pause',  [AgentTaskController::class, 'pause'])->name('agent.tasks.pause');
+        Route::post('/agent/tasks/{task}/resume', [AgentTaskController::class, 'resume'])->name('agent.tasks.resume');
+        Route::post('/agent/tasks/{task}/cancel', [AgentTaskController::class, 'cancel'])->name('agent.tasks.cancel');
+        Route::get('/agent/tasks/{task}/berkas/{index}', [AgentTaskController::class, 'download'])
+            ->whereNumber('index')->name('agent.tasks.download');
+
+        Route::post('/agent/approvals/{approval}', [AgentApprovalController::class, 'decide'])
+            ->middleware('permission:agent.approve')->name('agent.approvals.decide');
+
+        // Akses tool: pemberian kredensial hanya untuk administrator.
+        Route::post('/agent/integrations/telegram-link', [AgentIntegrationController::class, 'telegramLinkCode'])
+            ->name('agent.integrations.telegram-link');
+        Route::post('/agent/integrations/telegram-webhook', [AgentIntegrationController::class, 'telegramWebhook'])
+            ->name('agent.integrations.telegram-webhook');
+        Route::put('/agent/integrations/{key}',           [AgentIntegrationController::class, 'update'])->name('agent.integrations.update');
+        Route::post('/agent/integrations/{key}/verify',   [AgentIntegrationController::class, 'verify'])->name('agent.integrations.verify');
+        Route::post('/agent/integrations/{key}/deny',     [AgentIntegrationController::class, 'deny'])->name('agent.integrations.deny');
+        Route::delete('/agent/integrations/{key}',        [AgentIntegrationController::class, 'revoke'])->name('agent.integrations.revoke');
     });
 
     // Manajemen Tugas (Task Management ala Notion)

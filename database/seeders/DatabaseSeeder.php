@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             OrganizationSeeder::class,
             EvidenceTemplateSeeder::class,
+            AgentSeeder::class,
         ]);
 
         // Data contoh modul biomassa dilewati pada instalasi khusus
