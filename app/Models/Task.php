@@ -19,7 +19,8 @@ class Task extends Model
     protected $fillable = [
         'organization_id', 'project_id', 'division_id', 'pic_id', 'created_by',
         'title', 'description', 'category', 'status', 'priority', 'deadline',
-        'evidence_path', 'evidence_original_name', 'closed_by', 'closed_at',
+        'evidence_path', 'evidence_original_name', 'evidence_document_id',
+        'closed_by', 'closed_at',
     ];
 
     protected $casts = [
@@ -37,6 +38,12 @@ class Task extends Model
     public function closer(): BelongsTo       { return $this->belongsTo(User::class, 'closed_by'); }
     public function checklistItems(): HasMany { return $this->hasMany(TaskChecklistItem::class)->orderBy('position'); }
     public function comments(): HasMany       { return $this->hasMany(TaskComment::class)->latest(); }
+
+    /** Dokumen bukti (berita acara, kertas kerja, dsb.) yang disiapkan untuk task ini. */
+    public function evidenceDocuments(): HasMany { return $this->hasMany(EvidenceDocument::class)->latest(); }
+
+    /** Dokumen yang akhirnya dipakai sebagai bukti penutupan task. */
+    public function evidenceDocument(): BelongsTo { return $this->belongsTo(EvidenceDocument::class, 'evidence_document_id'); }
 
     public function getEvidenceUrlAttribute(): ?string
     {

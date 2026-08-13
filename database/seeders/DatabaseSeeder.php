@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             OrganizationSeeder::class,
+            EvidenceTemplateSeeder::class,
+            AgentSeeder::class,
         ]);
 
         // Data contoh modul biomassa dilewati pada instalasi khusus

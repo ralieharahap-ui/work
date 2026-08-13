@@ -3,7 +3,7 @@ import { ArrowRightOnRectangleIcon, XCircleIcon, Bars3Icon, XMarkIcon } from '@h
 import { useState, useEffect } from 'react';
 import {
     MapDashboardIcon, PalmPlantationIcon, IndustryIcon, JettyIcon,
-    CalculatorColorIcon, UsersColorIcon, TaskBoardIcon,
+    CalculatorColorIcon, UsersColorIcon, TaskBoardIcon, AgentIcon,
 } from '@/Components/AppIcons';
 
 // `biomassa: true` menandai menu milik modul sumber cangkang — disembunyikan
@@ -11,6 +11,7 @@ import {
 const nav = [
     { label: 'Dashboard',        href: '/',                   icon: MapDashboardIcon,   perm: null, biomassa: true },
     { label: 'Manajemen Tugas',  href: '/tasks',              icon: TaskBoardIcon,      perm: 'tasks.view' },
+    { label: 'Asisten AI',       href: '/agent',              icon: AgentIcon,          perm: 'agent.view' },
     { label: 'Sumber Cangkang',  href: '/palm-oil-sources',   icon: PalmPlantationIcon, perm: 'inventory.view', biomassa: true },
     { label: 'Titik Bongkar',    href: '/unloading-points',   icon: IndustryIcon,       perm: 'inventory.view', biomassa: true },
     { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view', biomassa: true },

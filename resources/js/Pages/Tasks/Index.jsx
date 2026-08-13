@@ -1,36 +1,57 @@
 import { useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import { PlusIcon, Squares2X2Icon, ChartBarSquareIcon, FolderIcon, UsersIcon } from '@heroicons/react/24/outline';
+import {
+    PlusIcon, Squares2X2Icon, ChartBarSquareIcon, FolderIcon, UsersIcon,
+    ChatBubbleLeftRightIcon, DocumentTextIcon,
+} from '@heroicons/react/24/outline';
 import AppLayout from '@/Layouts/AppLayout';
 import KanbanView from './KanbanView';
 import DashboardView from './DashboardView';
 import ProjectsView from './ProjectsView';
 import TeamView from './TeamView';
+import RemindersView from './RemindersView';
+import TemplatesView from './TemplatesView';
 import TaskModal from './TaskModal';
 import ProjectModal from './ProjectModal';
 import CloseTaskModal from './CloseTaskModal';
+import EvidenceModal from './EvidenceModal';
 import AlertsBanner from './AlertsBanner';
 
 const TABS = [
     { key: 'kanban', label: 'Papan Kanban', icon: Squares2X2Icon },
     { key: 'dashboard', label: 'Dashboard', icon: ChartBarSquareIcon },
     { key: 'projects', label: 'Proyek', icon: FolderIcon },
+    { key: 'documents', label: 'Dokumen Bukti', icon: DocumentTextIcon },
+    { key: 'reminders', label: 'Pengingat WA', icon: ChatBubbleLeftRightIcon },
     { key: 'team', label: 'Tim', icon: UsersIcon },
 ];
 
 export default function TasksIndex({
-    tasks, projects, team, divisions, roles, alerts,
+    tasks, projects, team, divisions, roles, alerts, evidenceTemplates, placeholders, whatsapp,
     currentUserId, canManageTasks, canManageProjects, canDeleteTasks, canManageUsers,
+    canManageTemplates, canRunReminders,
 }) {
     const { auth } = usePage().props;
     const [tab, setTab] = useState('kanban');
-    const [editingTask, setEditingTask] = useState(undefined); // undefined = closed
+    const [editingTask, setEditingTask] = useState(undefined); // undefined = tertutup
     const [editingProject, setEditingProject] = useState(undefined);
     const [taskToClose, setTaskToClose] = useState(null);
+    const [preselectedDoc, setPreselectedDoc] = useState(null);
+    const [evidenceTask, setEvidenceTask] = useState(null);
+
+    // Inertia mengganti seluruh prop `tasks` tiap kali data disegarkan, jadi
+    // modal yang sedang terbuka harus mengambil versi terbaru dari daftar itu.
+    const fresh = (task) => (task ? tasks.find((t) => t.id === task.id) || task : task);
 
     const handleStatusChange = (task, newStatus) => {
         router.patch(route('tasks.updateStatus', task.id), { status: newStatus }, { preserveScroll: true });
     };
+
+    const handleRemind = (task) => {
+        router.post(route('tasks.remind', task.id), {}, { preserveScroll: true });
+    };
+
+    const openEvidence = (task) => { setEditingTask(undefined); setEvidenceTask(task); };
 
     return (
         <>
@@ -82,7 +103,9 @@ export default function TasksIndex({
                                 canEdit={canManageTasks}
                                 onEdit={(t) => setEditingTask(t)}
                                 onStatusChange={handleStatusChange}
-                                onCloseRequest={(t) => setTaskToClose(t)}
+                                onCloseRequest={(t) => { setPreselectedDoc(null); setTaskToClose(t); }}
+                                onRemind={handleRemind}
+                                onOpenEvidence={openEvidence}
                             />
                         )}
                         {tab === 'dashboard' && <DashboardView tasks={tasks} projects={projects} team={team} />}
@@ -95,6 +118,18 @@ export default function TasksIndex({
                                 onNew={() => setEditingProject(null)}
                                 onEdit={(p) => setEditingProject(p)}
                             />
+                        )}
+                        {tab === 'documents' && (
+                            <TemplatesView
+                                templates={evidenceTemplates}
+                                tasks={tasks}
+                                placeholders={placeholders}
+                                canManage={canManageTemplates}
+                                onOpenTask={openEvidence}
+                            />
+                        )}
+                        {tab === 'reminders' && (
+                            <RemindersView whatsapp={whatsapp} team={team} canRunReminders={canRunReminders} />
                         )}
                         {tab === 'team' && (
                             <TeamView
@@ -112,14 +147,16 @@ export default function TasksIndex({
                 {editingTask !== undefined && (
                     <TaskModal
                         onClose={() => setEditingTask(undefined)}
-                        initialData={editingTask}
+                        initialData={fresh(editingTask)}
                         team={team}
                         projects={projects}
                         divisions={divisions}
                         currentUserId={currentUserId}
                         canEdit={canManageTasks}
                         canDelete={canDeleteTasks}
-                        onRequestClose={(t) => { setEditingTask(undefined); setTaskToClose(t); }}
+                        onRequestClose={(t) => { setEditingTask(undefined); setPreselectedDoc(null); setTaskToClose(t); }}
+                        onOpenEvidence={openEvidence}
+                        onRemind={handleRemind}
                     />
                 )}
 
@@ -131,8 +168,29 @@ export default function TasksIndex({
                     />
                 )}
 
+                {evidenceTask && (
+                    <EvidenceModal
+                        task={fresh(evidenceTask)}
+                        templates={evidenceTemplates}
+                        placeholders={placeholders}
+                        canEdit={canManageTasks}
+                        currentUserId={currentUserId}
+                        onClose={() => setEvidenceTask(null)}
+                        onUseAsEvidence={(doc) => {
+                            setEvidenceTask(null);
+                            setPreselectedDoc(doc.id);
+                            setTaskToClose(fresh(evidenceTask));
+                        }}
+                    />
+                )}
+
                 {taskToClose && (
-                    <CloseTaskModal task={taskToClose} onClose={() => setTaskToClose(null)} />
+                    <CloseTaskModal
+                        task={fresh(taskToClose)}
+                        preselectedDocumentId={preselectedDoc}
+                        onClose={() => { setTaskToClose(null); setPreselectedDoc(null); }}
+                        onOpenEvidence={openEvidence}
+                    />
                 )}
             </AppLayout>
         </>

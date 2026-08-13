@@ -1,8 +1,16 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\Agent\AgentApprovalController;
+use App\Http\Controllers\Agent\AgentDatasetController;
+use App\Http\Controllers\Agent\AgentIntegrationController;
+use App\Http\Controllers\Agent\AgentTaskController;
+use App\Http\Controllers\Agent\TelegramWebhookController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EvidenceDocumentController;
+use App\Http\Controllers\EvidenceTemplateController;
+use App\Http\Controllers\WhatsAppReminderController;
 use App\Http\Controllers\PalmOilSourceController;
 use App\Http\Controllers\UnloadingPointController;
 use App\Http\Controllers\JettyPointController;
@@ -20,6 +28,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// ── Webhook chatbot Telegram ──────────────────────────────────────────────
+// Tanpa sesi: keabsahannya dijaga rahasia pada URL + header rahasia Telegram.
+Route::post('/agent/telegram/webhook/{organization}/{secret}', TelegramWebhookController::class)
+    ->name('agent.telegram.webhook');
 
 // ── Protected ─────────────────────────────────────────────
 Route::middleware(['auth', 'active'])->group(function () {
@@ -88,6 +101,40 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('admin.users.deactivate');
     });
 
+    // ── Asisten AI (agent) ──────────────────────────────────────────────
+    Route::middleware('permission:agent.view')->group(function () {
+        Route::get('/agent', [AgentTaskController::class, 'index'])->name('agent.index');
+
+        Route::post('/agent/tasks', [AgentTaskController::class, 'store'])
+            ->middleware('permission:agent.create')->name('agent.tasks.store');
+
+        Route::post('/agent/tasks/{task}/run',    [AgentTaskController::class, 'rerun'])->name('agent.tasks.run');
+        Route::post('/agent/tasks/{task}/pause',  [AgentTaskController::class, 'pause'])->name('agent.tasks.pause');
+        Route::post('/agent/tasks/{task}/resume', [AgentTaskController::class, 'resume'])->name('agent.tasks.resume');
+        Route::post('/agent/tasks/{task}/cancel', [AgentTaskController::class, 'cancel'])->name('agent.tasks.cancel');
+        Route::get('/agent/tasks/{task}/berkas/{index}', [AgentTaskController::class, 'download'])
+            ->whereNumber('index')->name('agent.tasks.download');
+
+        // Berkas data yang boleh dibaca agent (CSV/TSV).
+        Route::post('/agent/datasets', [AgentDatasetController::class, 'store'])
+            ->middleware('permission:agent.create')->name('agent.datasets.store');
+        Route::delete('/agent/datasets/{filename}', [AgentDatasetController::class, 'destroy'])
+            ->name('agent.datasets.destroy');
+
+        Route::post('/agent/approvals/{approval}', [AgentApprovalController::class, 'decide'])
+            ->middleware('permission:agent.approve')->name('agent.approvals.decide');
+
+        // Akses tool: pemberian kredensial hanya untuk administrator.
+        Route::post('/agent/integrations/telegram-link', [AgentIntegrationController::class, 'telegramLinkCode'])
+            ->name('agent.integrations.telegram-link');
+        Route::post('/agent/integrations/telegram-webhook', [AgentIntegrationController::class, 'telegramWebhook'])
+            ->name('agent.integrations.telegram-webhook');
+        Route::put('/agent/integrations/{key}',           [AgentIntegrationController::class, 'update'])->name('agent.integrations.update');
+        Route::post('/agent/integrations/{key}/verify',   [AgentIntegrationController::class, 'verify'])->name('agent.integrations.verify');
+        Route::post('/agent/integrations/{key}/deny',     [AgentIntegrationController::class, 'deny'])->name('agent.integrations.deny');
+        Route::delete('/agent/integrations/{key}',        [AgentIntegrationController::class, 'revoke'])->name('agent.integrations.revoke');
+    });
+
     // Manajemen Tugas (Task Management ala Notion)
     Route::middleware('permission:tasks.view')->group(function () {
         Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
@@ -104,5 +151,24 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/task-projects',                [TaskProjectController::class, 'store'])->name('task-projects.store');
         Route::put('/task-projects/{taskProject}',    [TaskProjectController::class, 'update'])->name('task-projects.update');
         Route::delete('/task-projects/{taskProject}', [TaskProjectController::class, 'destroy'])->name('task-projects.destroy');
+
+        // ── Dokumen bukti (evidence): template, kertas kerja, tanda tangan → PDF ──
+        Route::post('/tasks/{task}/evidence-documents', [EvidenceDocumentController::class, 'store'])->name('evidence-documents.store');
+        Route::put('/evidence-documents/{document}',           [EvidenceDocumentController::class, 'update'])->name('evidence-documents.update');
+        Route::post('/evidence-documents/{document}/sign',     [EvidenceDocumentController::class, 'sign'])->name('evidence-documents.sign');
+        Route::get('/evidence-documents/{document}/print',     [EvidenceDocumentController::class, 'print'])->name('evidence-documents.print');
+        Route::get('/evidence-documents/{document}/pdf',       [EvidenceDocumentController::class, 'download'])->name('evidence-documents.download');
+        Route::delete('/evidence-documents/{document}',        [EvidenceDocumentController::class, 'destroy'])->name('evidence-documents.destroy');
+
+        Route::post('/evidence-templates',                        [EvidenceTemplateController::class, 'store'])->name('evidence-templates.store');
+        Route::post('/evidence-templates/{template}/duplicate',   [EvidenceTemplateController::class, 'duplicate'])->name('evidence-templates.duplicate');
+        Route::put('/evidence-templates/{template}',              [EvidenceTemplateController::class, 'update'])->name('evidence-templates.update');
+        Route::delete('/evidence-templates/{template}',           [EvidenceTemplateController::class, 'destroy'])->name('evidence-templates.destroy');
+
+        // ── Pengingat WhatsApp ──────────────────────────────────────────────
+        Route::post('/tasks/{task}/remind-whatsapp', [WhatsAppReminderController::class, 'remindTask'])->name('tasks.remind');
+        Route::post('/whatsapp-reminders/run',       [WhatsAppReminderController::class, 'runDigest'])->name('whatsapp.run');
+        Route::post('/whatsapp-reminders/test',      [WhatsAppReminderController::class, 'sendTest'])->name('whatsapp.test');
+        Route::patch('/whatsapp-reminders/contact',  [WhatsAppReminderController::class, 'updateContact'])->name('whatsapp.contact');
     });
 });

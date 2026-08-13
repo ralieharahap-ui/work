@@ -306,3 +306,42 @@
     .gep-marker, .gep-marker-shadow, .gep-route { animation: none !important; }
     .gep-marker:hover { transform: scale(1.08); }
 }
+
+/* ── Editor dokumen bukti (evidence) ─────────────────────────────────
+   Tailwind preflight menetralkan gaya bawaan heading, daftar, dan tabel.
+   Aturan berikut mengembalikannya di dalam area editor & pratinjau supaya
+   tampilannya sama dengan hasil cetak/PDF dokumennya. */
+.evidence-editor, .evidence-preview { color: rgba(0, 0, 0, .88); }
+.evidence-editor h1, .evidence-preview h1 { font-size: 1.35rem; font-weight: 700; margin: .9rem 0 .5rem; }
+.evidence-editor h2, .evidence-preview h2 { font-size: 1.15rem; font-weight: 700; margin: .85rem 0 .45rem; }
+.evidence-editor h3, .evidence-preview h3 { font-size: 1rem;    font-weight: 700; margin: .8rem 0 .4rem; }
+.evidence-editor h4, .evidence-preview h4 { font-size: .95rem;  font-weight: 600; margin: .75rem 0 .35rem; }
+.evidence-editor p, .evidence-preview p { margin: 0 0 .6rem; }
+.evidence-editor ul, .evidence-preview ul { list-style: disc;    margin: 0 0 .6rem; padding-left: 1.4rem; }
+.evidence-editor ol, .evidence-preview ol { list-style: decimal; margin: 0 0 .6rem; padding-left: 1.4rem; }
+.evidence-editor li, .evidence-preview li { margin: .1rem 0; }
+.evidence-editor table, .evidence-preview table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0 0 .75rem;
+    font-size: .82rem;
+}
+.evidence-editor td, .evidence-editor th,
+.evidence-preview td, .evidence-preview th {
+    border: 1px solid rgb(0 0 0 / .18);
+    padding: .35rem .5rem;
+    vertical-align: top;
+}
+.evidence-editor th, .evidence-preview th { background: #eef4f8; text-align: left; font-weight: 600; }
+.evidence-editor hr, .evidence-preview hr { border-top: 1px solid rgb(0 0 0 / .18); margin: .8rem 0; }
+.evidence-editor strong, .evidence-preview strong { font-weight: 700; }
+.evidence-editor em, .evidence-preview em { font-style: italic; }
+.evidence-editor u, .evidence-preview u { text-decoration: underline; }
+.evidence-editor blockquote, .evidence-preview blockquote {
+    border-left: 3px solid rgb(0 0 0 / .18);
+    padding-left: .75rem;
+    margin: 0 0 .6rem;
+    color: rgb(0 0 0 / .6);
+}
+.evidence-editor img, .evidence-preview img { max-width: 100%; }
+.evidence-editor:focus { outline: none; }

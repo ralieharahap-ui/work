@@ -12,7 +12,7 @@ class RolePermissionSeeder extends Seeder
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $modules = ['inventory', 'invoice', 'billing', 'books', 'letters', 'tasks'];
+        $modules = ['inventory', 'invoice', 'billing', 'books', 'letters', 'tasks', 'agent'];
         $actions = ['view', 'create', 'edit', 'delete', 'approve'];
 
         foreach ($modules as $module) {
