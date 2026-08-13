@@ -208,6 +208,7 @@ dasbor maupun **chat Telegram**.
 php artisan agent:setup --interactive   # panduan + pemberian akses
 php artisan agent:demo --fresh          # demo: pekerjaan #2 memakai pengalaman pekerjaan #1
 php artisan agent:telegram --poll       # jalankan chatbot Telegram (mode pengembangan)
+php artisan agent:setup --connect=telegram --field=bot_token=…   # simpan token tanpa TTY
 ```
 
 > Agent berjalan penuh **tanpa kunci API mana pun** (perencana heuristik lokal).

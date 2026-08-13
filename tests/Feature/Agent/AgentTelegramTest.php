@@ -73,6 +73,29 @@ class AgentTelegramTest extends AgentTestCase
         $this->assertSame(1, AgentTask::count());
     }
 
+    public function test_galat_koneksi_tidak_menyimpan_token_ke_basis_data(): void
+    {
+        Http::fake([
+            'api.telegram.org/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException(
+                'cURL error 56: CONNECT tunnel failed for https://api.telegram.org/bot9911223344:AAEGGhwVEurCgpXwpmTncWtdFAXJosUTxpQ/getMe',
+            ),
+        ]);
+
+        $record = app(IntegrationManager::class)->connect(
+            $this->organization->id, 'telegram', ['bot_token' => '9911223344:AAEGGhwVEurCgpXwpmTncWtdFAXJosUTxpQ'], $this->user,
+        );
+
+        $this->assertSame('error', $record->status);
+        $this->assertStringNotContainsString('AAEGGhwVEurCgpXwpmTncWtdFAXJosUTxpQ', (string) $record->last_error);
+        $this->assertStringNotContainsString('9911223344', (string) $record->last_error);
+
+        // Kredensialnya sendiri tetap tersimpan terenkripsi, bukan sebagai teks biasa.
+        $this->assertStringNotContainsString(
+            'AAEGGhwVEurCgpXwpmTncWtdFAXJosUTxpQ',
+            (string) $record->getAttributes()['credentials'],
+        );
+    }
+
     public function test_webhook_menolak_rahasia_yang_salah(): void
     {
         $record = AgentIntegration::where('key', 'telegram')->firstOrFail();

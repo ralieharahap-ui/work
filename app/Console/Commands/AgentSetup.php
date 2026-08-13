@@ -21,6 +21,8 @@ class AgentSetup extends Command
     protected $signature = 'agent:setup
         {--org= : Batasi ke satu organisasi (UUID)}
         {--interactive : Minta kredensial akses satu per satu}
+        {--connect= : Hubungkan satu akses tanpa tanya-jawab, mis. --connect=telegram}
+        {--field=* : Nilai kredensial untuk --connect, format nama=nilai (boleh diulang)}
         {--verify : Uji ulang seluruh akses yang sudah tersambung}';
 
     protected $description = 'Panduan pembuka asisten AI: menjelaskan kebutuhan akses dan menerima pemberian akses.';
@@ -47,6 +49,12 @@ class AgentSetup extends Command
             $this->line("<comment>{$organization->name}</comment>");
 
             $agent = $tasks->agentFor($organization->id);
+
+            if ($this->option('connect')) {
+                $this->connectDirectly($organization->id, $integrations);
+
+                continue;
+            }
 
             $this->line('  Agent      : ' . $agent->name . ' (' . $agent->role . ', otonomi ' . $agent->autonomy . ')');
             $this->line('  Perencana  : ' . $llm->activeName());
@@ -88,6 +96,51 @@ class AgentSetup extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Pemberian akses lewat argumen — dipakai pada server tanpa TTY (Docker,
+     * skrip deploy). Nilai kredensial tidak pernah ditampilkan kembali.
+     */
+    private function connectDirectly(string $organizationId, IntegrationManager $integrations): void
+    {
+        $key         = (string) $this->option('connect');
+        $definition  = $integrations->definition($key);
+
+        if (! $definition) {
+            $this->error("Akses '{$key}' tidak dikenal. Pilihan: " . implode(', ', IntegrationCatalog::keys()));
+
+            return;
+        }
+
+        $credentials = [];
+
+        foreach ((array) $this->option('field') as $pair) {
+            [$name, $value] = array_pad(explode('=', (string) $pair, 2), 2, null);
+
+            if ($name !== null && $value !== null) {
+                $credentials[trim($name)] = $value;
+            }
+        }
+
+        if ($credentials === []) {
+            $this->error('Sertakan minimal satu --field=nama=nilai. Kolom yang dibutuhkan: '
+                . implode(', ', array_keys($definition['fields'] ?? [])) . '.');
+
+            return;
+        }
+
+        $record = $integrations->connect($organizationId, $key, $credentials);
+
+        if ($record->isConnected()) {
+            $this->info("✔ {$definition['label']} tersambung."
+                . ($record->meta ? ' (' . json_encode($record->meta, JSON_UNESCAPED_SLASHES) . ')' : ''));
+
+            return;
+        }
+
+        // Pesan galat sudah diredaksi dari kredensial oleh IntegrationManager.
+        $this->error("✖ {$definition['label']} gagal: {$record->last_error}");
     }
 
     private function collectCredentials(string $organizationId, IntegrationManager $integrations): void

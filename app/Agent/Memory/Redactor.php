@@ -45,7 +45,9 @@ class Redactor
         // Pola kunci yang dikenali umum (Anthropic, bearer, token bot Telegram).
         $text = preg_replace('/\bsk-[A-Za-z0-9\-_]{12,}/', self::MASK, $text) ?? $text;
         $text = preg_replace('/\bBearer\s+[A-Za-z0-9\.\-_]{16,}/i', 'Bearer ' . self::MASK, $text) ?? $text;
-        $text = preg_replace('/\b\d{8,10}:[A-Za-z0-9_\-]{30,}\b/', self::MASK, $text) ?? $text;
+        // Token bot Telegram. Tanpa batas kata di depan: pada URL ia menempel
+        // pada path ("…/bot8123456789:AA…/getMe") sehingga \b tidak berlaku.
+        $text = preg_replace('/\d{8,10}:[A-Za-z0-9_\-]{30,}/', self::MASK, $text) ?? $text;
 
         if ($maskPersonal) {
             $text = preg_replace('/[\w\.\-\+]+@[\w\-]+\.[\w\.\-]+/', '[email]', $text) ?? $text;

@@ -262,10 +262,18 @@ begitu aksesnya diberikan (`agent:tick`).
 ## I. Chatbot Telegram
 
 ```bash
-php artisan agent:setup --interactive          # tempel token dari @BotFather
-php artisan agent:telegram --poll              # mode pengembangan (long polling)
-php artisan agent:telegram --set-webhook=      # mode produksi (URL diambil dari APP_URL)
+# Menyimpan token — pilih salah satu:
+php artisan agent:setup --interactive                     # tanya-jawab di terminal
+php artisan agent:setup --connect=telegram \
+    --field=bot_token="$TELEGRAM_BOT_TOKEN"               # tanpa TTY (Docker/skrip deploy)
+
+php artisan agent:telegram --poll                          # mode pengembangan (long polling)
+php artisan agent:telegram --set-webhook=                  # mode produksi (URL dari APP_URL)
 ```
+
+Token tersimpan terenkripsi di `agent_integrations`, tidak pernah dikirim ke antarmuka, dan
+disaring dari seluruh pesan galat sebelum dicatat — termasuk galat jaringan Telegram yang
+menyelipkan token di dalam URL.
 
 Menautkan akun: dasbor → *Akses Tools* → **Hubungkan Telegram saya** → kirim
 `/tautkan KODE` ke bot (kode berlaku 30 menit, sekali pakai).

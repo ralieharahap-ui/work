@@ -9,6 +9,7 @@ use App\Agent\Integrations\Connectors\MicrosoftGraphConnector;
 use App\Agent\Integrations\Connectors\SmtpConnector;
 use App\Agent\Integrations\Connectors\TelegramConnector;
 use App\Agent\Integrations\Connectors\WhatsAppConnector;
+use App\Agent\Memory\Redactor;
 use App\Models\AgentIntegration;
 use App\Models\User;
 use Illuminate\Contracts\Container\Container;
@@ -23,8 +24,20 @@ use InvalidArgumentException;
  */
 class IntegrationManager
 {
-    public function __construct(private readonly Container $container)
+    public function __construct(
+        private readonly Container $container,
+        private readonly Redactor $redactor,
+    ) {
+    }
+
+    /**
+     * Pesan galat penyedia kerap memuat kredensial — Telegram, misalnya,
+     * menyelipkan token bot di dalam URL. Pesan itu tersimpan di basis data
+     * dan tampil di layar, jadi disaring lebih dulu.
+     */
+    private function safeError(?string $error): ?string
     {
+        return $error === null ? null : $this->redactor->text($error, false);
     }
 
     /** @return array<string, mixed>|null */
@@ -107,7 +120,7 @@ class IntegrationManager
             'granted_by'       => $grantedBy?->id ?? $record->granted_by,
             'granted_at'       => $result->ok ? now() : $record->granted_at,
             'last_verified_at' => now(),
-            'last_error'       => $result->ok ? null : $result->error,
+            'last_error'       => $this->safeError($result->ok ? null : $result->error),
         ])->save();
 
         return $record;
@@ -123,7 +136,7 @@ class IntegrationManager
             'status'           => $result->ok ? 'connected' : ($record->hasSecrets() ? 'error' : 'not_configured'),
             'meta'             => $result->ok ? $result->meta : $record->meta,
             'last_verified_at' => now(),
-            'last_error'       => $result->ok ? null : $result->error,
+            'last_error'       => $this->safeError($result->ok ? null : $result->error),
         ])->save();
 
         return $record;

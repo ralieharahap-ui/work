@@ -44,6 +44,26 @@ class RedactorTest extends TestCase
         $this->assertStringNotContainsString('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9', $clean);
     }
 
+    public function test_token_bot_yang_menempel_pada_url_ikut_disamarkan(): void
+    {
+        // Galat jaringan Telegram memuat token di dalam path URL; pesan itu
+        // tersimpan di basis data dan tampil di layar Akses Tools.
+        $clean = $this->redactor->text(
+            'cURL error 56 for https://api.telegram.org/bot8123456789:AAEGGhwVEurCgpXwpmTncWtdFAXJosUTxpQ/getMe',
+            false,
+        );
+
+        $this->assertStringNotContainsString('AAEGGhwVEurCgpXwpmTncWtdFAXJosUTxpQ', $clean);
+        $this->assertStringContainsString('api.telegram.org', $clean, 'Konteks galatnya harus tetap terbaca.');
+    }
+
+    public function test_angka_biasa_tidak_ikut_tersamarkan(): void
+    {
+        $clean = $this->redactor->text('Faktur 2026081234 senilai Rp 12.500.000 sudah dibayar', false);
+
+        $this->assertSame('Faktur 2026081234 senilai Rp 12.500.000 sudah dibayar', $clean);
+    }
+
     public function test_data_pribadi_disaring_sebelum_masuk_memori_jangka_panjang(): void
     {
         $memory = $this->redactor->forMemory([
