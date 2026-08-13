@@ -27,7 +27,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SESSION_DRIVER: file
       CACHE_STORE: file
-      QUEUE_CONNECTION: sync
+      # Antrean basis data + pekerja di supervisord: pekerjaan asisten AI
+      # berjalan di latar, sehingga layar web dan webhook Telegram membalas
+      # seketika. Setel 'sync' bila ingin semuanya berjalan di dalam request.
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
       TRUSTED_PROXIES: "*"
       SEED_ON_DEPLOY: ${SEED_ON_DEPLOY:-true}
       # Pengingat tugas via WhatsApp — bawaan mati sampai gateway siap.
@@ -47,6 +50,14 @@ services:
       WAHA_BASE_URL: ${WAHA_BASE_URL:-http://waha:3000}
       WAHA_API_KEY: ${WAHA_API_KEY:-}
       WAHA_SESSION: ${WAHA_SESSION:-default}
+      # Asisten AI — perencana heuristik lokal secara bawaan (tanpa kunci API).
+      AGENT_ENABLED: ${AGENT_ENABLED:-true}
+      AGENT_LLM_PROVIDER: ${AGENT_LLM_PROVIDER:-scripted}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AGENT_AUTONOMY: ${AGENT_AUTONOMY:-balanced}
+      # Chatbot Telegram; token boleh diisi di sini atau lewat menu Akses Tools.
+      AGENT_TELEGRAM_ENABLED: ${AGENT_TELEGRAM_ENABLED:-true}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy

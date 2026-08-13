@@ -292,15 +292,26 @@ Menautkan akun: dasbor → *Akses Tools* → **Hubungkan Telegram saya** → kir
 ## J. Menjalankan & Menguji
 
 ```bash
-php artisan migrate --force            # 13 tabel agent
+php artisan migrate --force            # 13 tabel agent + tabel antrean
 php artisan db:seed                    # agent bawaan, katalog akses, berkas data contoh
 
 php artisan agent:demo --fresh         # demo belajar dari pengalaman (bagian E)
 php artisan agent:run "Buat laporan penjualan bulan ini" --watch
 php artisan agent:tick                 # denyut kerja (otomatis tiap menit lewat penjadwal)
 
-./vendor/bin/phpunit                   # 50 test, 256 assertion
+./vendor/bin/phpunit                   # 59 test, 280 assertion
 ```
+
+### Menjalankan di server
+
+Pada citra Docker aplikasi ini, `supervisord` menjalankan empat proses: php-fpm, nginx,
+**penjadwal** (`schedule:work` → `agent:tick` tiap menit), dan **pekerja antrean**
+(`queue:work`). Dengan `QUEUE_CONNECTION=database` (bawaan produksi) penugasan dari layar
+web dan pesan masuk Telegram dibalas seketika sementara pekerjaannya berjalan di latar.
+
+Bila pekerja antrean mati atau tidak dipasang, pekerjaan tidak hilang: penjadwal menyapu
+pekerjaan berstatus PENDING setiap menit. Dengan `QUEUE_CONNECTION=sync` semuanya berjalan
+langsung di dalam request — tetap benar, hanya tidak asinkron.
 
 Agent **berjalan penuh tanpa kunci API mana pun**: perencananya memakai mesin heuristik
 lokal yang deterministik (`AGENT_LLM_PROVIDER=scripted`), sehingga test dan demo dapat

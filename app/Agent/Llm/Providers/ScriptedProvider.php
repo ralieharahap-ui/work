@@ -87,6 +87,12 @@ class ScriptedProvider implements LlmProvider
             }
         }
 
+        // "Rekap tugas yang belum selesai" bicara tentang papan tugas aplikasi,
+        // bukan berkas data penjualan — sumbernya sistem sendiri, bukan CSV.
+        if ($taskType === 'report_generation' && $this->mentionsInternalTasks($haystack)) {
+            $taskType = 'followup';
+        }
+
         $risk = 'low';
         foreach (self::HIGH_RISK_WORDS as $word) {
             if (str_contains($haystack, $word)) {
@@ -104,6 +110,23 @@ class ScriptedProvider implements LlmProvider
             'context_hints'   => $this->contextHints($objective),
             'clarifications'  => [],
         ];
+    }
+
+    /** True bila yang dimaksud adalah papan tugas aplikasi, bukan berkas data. */
+    private function mentionsInternalTasks(string $haystack): bool
+    {
+        // Bila berkas data disebut secara tersurat, itu tetap laporan dari berkas.
+        if (preg_match('/[\w\-.]+\.(?:csv|tsv)\b/iu', $haystack)) {
+            return false;
+        }
+
+        foreach (['tugas', 'task', 'pekerjaan tim', 'pekerjaan yang belum', 'tunggakan'] as $word) {
+            if (str_contains($haystack, $word)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

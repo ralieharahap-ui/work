@@ -312,6 +312,7 @@ resources/js/
 resources/views/evidence/document.blade.php   tata letak dokumen untuk cetak & PDF
 routes/web.php        seluruh route
 routes/console.php    penjadwalan pengingat WhatsApp harian + denyut kerja agent tiap menit
+docker/supervisord.conf  php-fpm · nginx · penjadwal (schedule:work) · pekerja antrean (queue:work)
 docs/ASISTEN_AI.md    dokumentasi lengkap asisten AI (arsitektur, memori, keamanan, demo)
 tests/                pengujian (50 test): loop agent, pembelajaran, kebijakan, tool, Telegram, web
 ```
