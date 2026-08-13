@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
-    PlusIcon, SparklesIcon, CircleStackIcon, KeyIcon, WrenchScrewdriverIcon,
+    PlusIcon, SparklesIcon, CircleStackIcon, KeyIcon, WrenchScrewdriverIcon, TableCellsIcon,
 } from '@heroicons/react/24/outline';
 import AppLayout from '@/Layouts/AppLayout';
 import TaskDetail from './TaskDetail';
 import MemoryView from './MemoryView';
 import IntegrationsView from './IntegrationsView';
+import DatasetsView from './DatasetsView';
 import NewTaskModal from './NewTaskModal';
 import { STATUS_BADGE, STATUS_LABEL, TASK_TYPE_LABEL, fmtTime, pct } from './constants';
 
 const TABS = [
     { key: 'tasks',        label: 'Pekerjaan',    icon: SparklesIcon },
+    { key: 'datasets',     label: 'Berkas Data',  icon: TableCellsIcon },
     { key: 'memory',       label: 'Memori',       icon: CircleStackIcon },
     { key: 'integrations', label: 'Akses Tools',  icon: KeyIcon },
     { key: 'tools',        label: 'Kemampuan',    icon: WrenchScrewdriverIcon },
@@ -22,7 +24,8 @@ const TABS = [
  * atas dasar apa, dengan tool apa, dan apa yang sudah dipelajarinya.
  */
 export default function AgentIndex({
-    tasks, task, integrations, onboarding, memory, tools, agentName, llmProvider, autonomy, can,
+    tasks, task, integrations, onboarding, memory, tools, datasets,
+    agentName, llmProvider, autonomy, can,
 }) {
     const { auth } = usePage().props;
     const [tab, setTab] = useState('tasks');
@@ -135,6 +138,14 @@ export default function AgentIndex({
 
                                 <TaskDetail task={task} can={can} onOpenAccess={() => setTab('integrations')} />
                             </div>
+                        )}
+
+                        {tab === 'datasets' && (
+                            <DatasetsView
+                                datasets={datasets}
+                                canUpload={can.create}
+                                canDelete={can.manageData}
+                            />
                         )}
 
                         {tab === 'memory' && <MemoryView memory={memory} />}

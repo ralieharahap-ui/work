@@ -194,8 +194,9 @@ Modul asisten yang menerima pekerjaan dengan bahasa biasa, **merencanakan**,
 supaya pekerjaan berikutnya lebih cepat dan lebih jarang salah. Bisa diperintah lewat
 dasbor maupun **chat Telegram**.
 
-- Tulis pekerjaan seperti *"Buat laporan penjualan bulan ini dari penjualan-2026-08.csv"* —
-  agent menyusun rencana bertahap, menjalankan tool, dan menghasilkan berkas yang bisa diunduh.
+- Unggah berkas data Anda (CSV/TSV) di tab **Berkas Data**, lalu tulis pekerjaan seperti
+  *"Buat laporan penjualan bulan ini dari penjualan-2026-08.csv"* — agent menyusun rencana
+  bertahap, menjalankan tool, dan menghasilkan berkas yang bisa diunduh.
 - Tindakan berdampak keluar (kirim email, buat agenda, kirim WhatsApp) **selalu berhenti
   meminta persetujuan** Anda lebih dulu.
 - Setiap keputusan terekam pada jejak audit: memori apa yang dipakai, rencana apa yang

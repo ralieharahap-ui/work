@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Agent\AgentApprovalController;
+use App\Http\Controllers\Agent\AgentDatasetController;
 use App\Http\Controllers\Agent\AgentIntegrationController;
 use App\Http\Controllers\Agent\AgentTaskController;
 use App\Http\Controllers\Agent\TelegramWebhookController;
@@ -113,6 +114,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/agent/tasks/{task}/cancel', [AgentTaskController::class, 'cancel'])->name('agent.tasks.cancel');
         Route::get('/agent/tasks/{task}/berkas/{index}', [AgentTaskController::class, 'download'])
             ->whereNumber('index')->name('agent.tasks.download');
+
+        // Berkas data yang boleh dibaca agent (CSV/TSV).
+        Route::post('/agent/datasets', [AgentDatasetController::class, 'store'])
+            ->middleware('permission:agent.create')->name('agent.datasets.store');
+        Route::delete('/agent/datasets/{filename}', [AgentDatasetController::class, 'destroy'])
+            ->name('agent.datasets.destroy');
 
         Route::post('/agent/approvals/{approval}', [AgentApprovalController::class, 'decide'])
             ->middleware('permission:agent.approve')->name('agent.approvals.decide');

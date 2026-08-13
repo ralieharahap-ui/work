@@ -103,6 +103,14 @@ echo "==> Menyinkronkan template dokumen bukti..."
 php artisan db:seed --class=Database\\Seeders\\EvidenceTemplateSeeder --force || \
   echo "!! Sinkronisasi template dokumen gagal (periksa log)."
 
+# 3a-3) Asisten AI — agent bawaan, katalog akses tool, dan pengetahuan awal.
+#       Alasannya sama: instalasi lama melewati seeding penuh, sehingga tanpa
+#       ini modul asisten tidak punya katalog akses untuk ditawarkan. Seeder
+#       idempoten dan tidak menimpa pengalaman maupun berkas data yang ada.
+echo "==> Menyinkronkan asisten AI..."
+php artisan db:seed --class=Database\\Seeders\\AgentSeeder --force || \
+  echo "!! Sinkronisasi asisten AI gagal (periksa log)."
+
 # 3b) Set / reset password admin bila variabel ADMIN_PASSWORD diisi
 if [ -n "${ADMIN_PASSWORD}" ]; then
   echo "==> Menerapkan ADMIN_PASSWORD untuk akun admin..."

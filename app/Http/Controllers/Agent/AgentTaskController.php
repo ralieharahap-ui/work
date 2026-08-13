@@ -61,6 +61,7 @@ class AgentTaskController extends Controller
             ],
             'memory'       => $this->memorySnapshot($orgId, $seesAllTasks ? null : (string) $user->id),
             'tools'        => $registry->definitions(),
+            'datasets'     => AgentDatasetController::catalog(),
             'agentName'    => config('agent.name'),
             'llmProvider'  => app(\App\Agent\Llm\LlmManager::class)->activeName(),
             'autonomy'     => config('agent.policy.autonomy'),
@@ -68,6 +69,7 @@ class AgentTaskController extends Controller
                 'create'       => $user->can('agent.create'),
                 'approve'      => $user->can('agent.approve'),
                 'manageAccess' => $user->hasRole('super_admin'),
+                'manageData'   => $user->hasAnyRole(['super_admin', 'approval', 'reviewer']),
             ],
         ]);
     }

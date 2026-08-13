@@ -102,6 +102,14 @@ dilanjutkan, atau diambil alih proses lain tanpa kehilangan konteks.
 9. **Refleksi & belajar** — pengalaman, pelajaran, dan prosedur disimpan; nilai memori yang
    dipakai naik/turun sesuai hasilnya.
 
+### Berkas data
+
+Berkas yang boleh dibaca agent diunggah lewat dasbor → tab **Berkas Data** (CSV/TSV, maks.
+5 MB). Berkas tersimpan di ruang kerja privat aplikasi — bukan direktori publik — sehingga
+tidak dapat diunduh lewat URL tebakan. Nama berkasnya disebut langsung di dalam instruksi:
+
+> "Buat laporan penjualan bulan ini dari berkas **penjualan-2026-08.csv**"
+
 ### Membaca instruksi chat
 
 Pengguna chat menuliskan keterangan di dalam kalimat, bukan di formulir. Tahap pemahaman
@@ -196,7 +204,7 @@ Semua tool memenuhi satu kontrak (`describe / validate / execute`) dan didaftark
 |---|---|---|
 | `clock.now` | rendah | waktu acuan |
 | `agent.note` | rendah | merangkum tanpa efek samping |
-| `spreadsheet.read` | rendah | membaca CSV di ruang kerja agent |
+| `spreadsheet.read` | rendah | membaca CSV/TSV yang diunggah di tab **Berkas Data** |
 | `data.analyze` | rendah | total, rata-rata, pengelompokan |
 | `data.compare` | rendah | rekonsiliasi dua sumber |
 | `document.create` | rendah | menyusun dokumen (Markdown/HTML/PDF) |
