@@ -102,6 +102,17 @@ dilanjutkan, atau diambil alih proses lain tanpa kehilangan konteks.
 9. **Refleksi & belajar** — pengalaman, pelajaran, dan prosedur disimpan; nilai memori yang
    dipakai naik/turun sesuai hasilnya.
 
+### Membaca instruksi chat
+
+Pengguna chat menuliskan keterangan di dalam kalimat, bukan di formulir. Tahap pemahaman
+karena itu menarik keterangan yang **tersurat** — nama berkas (`penjualan-2026-08.csv`) dan
+alamat email — menjadi konteks pekerjaan. Nilai yang sudah diisi pengguna secara eksplisit
+tidak pernah ditimpa.
+
+Bila berkas sumber tidak disebut sama sekali, agent **tidak menebak**: ia berhenti dan
+bertanya sambil menyebutkan berkas apa saja yang tersedia. Menebak berkas berarti
+menerbitkan laporan periode yang keliru — kegagalan yang jauh lebih mahal daripada berhenti.
+
 ### Status pekerjaan
 
 `PENDING → PLANNING → EXECUTING ⇄ WAITING_APPROVAL / PAUSED → VERIFYING → COMPLETED | FAILED | CANCELLED`

@@ -28,7 +28,7 @@ class SpreadsheetReadTool extends BaseTool
             title: 'Baca berkas data',
             description: 'Membaca berkas CSV pada folder data agent dan mengembalikan barisnya.',
             inputSchema: [
-                'dataset'          => ['type' => 'string', 'required' => true, 'description' => 'Nama berkas, mis. penjualan-2026-07.csv'],
+                'dataset'          => ['type' => 'string', 'description' => 'Nama berkas, mis. penjualan-2026-07.csv'],
                 'required_columns' => ['type' => 'array', 'description' => 'Kolom yang wajib ada'],
                 'column_map'       => ['type' => 'array', 'description' => 'Pemetaan nama kolom yang diminta → nama kolom asli'],
                 'limit'            => ['type' => 'int', 'default' => 500],
@@ -39,10 +39,23 @@ class SpreadsheetReadTool extends BaseTool
 
     public function execute(array $input, ToolContext $context): ToolResult
     {
-        $dataset = $this->safeName((string) $input['dataset']);
+        $requested = trim((string) ($input['dataset'] ?? ''));
+
+        if ($requested === '') {
+            // Menebak berkas sumber berisiko menghasilkan laporan periode yang
+            // keliru, jadi pilihannya diserahkan kepada manusia.
+            return ToolResult::failure(
+                'Berkas sumber belum ditentukan. Sebutkan nama berkasnya pada instruksi '
+                . '(mis. "dari berkas penjualan-2026-08.csv") atau isi konteks "dataset".',
+                'missing_data',
+                ['available_datasets' => $this->availableDatasets(Storage::disk('local'), $context)],
+            );
+        }
+
+        $dataset = $this->safeName($requested);
 
         if ($dataset === null) {
-            return ToolResult::failure("Nama berkas '{$input['dataset']}' tidak diizinkan.", 'validation');
+            return ToolResult::failure("Nama berkas '{$requested}' tidak diizinkan.", 'validation');
         }
 
         $disk = Storage::disk('local');

@@ -64,7 +64,13 @@ class Planner
 
         $taskType = (string) ($understanding['task_type'] ?? 'general');
 
+        // Keterangan yang tersurat pada kalimat perintah (nama berkas, alamat
+        // email) dipakai sebagai konteks. Nilai yang sudah diisi pengguna
+        // secara eksplisit tidak pernah ditimpa.
+        $hints = array_filter((array) ($understanding['context_hints'] ?? []));
+
         $task->fill([
+            'context' => array_merge($hints, (array) ($task->context ?? [])),
             'task_type'       => $taskType,
             'title'           => $task->title ?: Str::limit((string) ($understanding['title'] ?? $task->objective), 70, ''),
             'risk_level'      => in_array($understanding['risk_level'] ?? 'low', ['low', 'medium', 'high'], true)
@@ -434,7 +440,9 @@ class Planner
             . 'Tentukan jenis pekerjaan (report_generation, data_comparison, email_handling, calendar_scheduling, '
             . 'document_preparation, followup, research, atau general), judul singkat, tingkat risiko (low/medium/high; '
             . 'tindakan yang mengirim, menghapus, atau mengubah data pihak lain berisiko tinggi), serta bentuk hasil '
-            . 'yang diharapkan. Jangan mengarang kebutuhan yang tidak diminta.';
+            . 'yang diharapkan. Sertakan pula context_hints berisi keterangan yang benar-benar tersurat pada '
+            . 'instruksi — mis. {"dataset":"penjualan-2026-08.csv"} atau {"email_to":["klien@contoh.com"]}. '
+            . 'Jangan mengarang nama berkas, alamat, maupun kebutuhan yang tidak diminta.';
     }
 
     private function planningSystemPrompt(AgentTask $task): string
@@ -508,6 +516,8 @@ class Planner
                 'risk_level'      => ['type' => 'string', 'enum' => ['low', 'medium', 'high']],
                 'expected_output' => ['type' => 'string'],
                 'keywords'        => ['type' => 'array', 'items' => ['type' => 'string']],
+                // Keterangan tersurat pada instruksi: nama berkas, alamat email.
+                'context_hints'   => ['type' => 'object'],
             ],
             'required' => ['task_type', 'title', 'risk_level'],
         ];

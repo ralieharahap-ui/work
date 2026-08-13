@@ -15,10 +15,23 @@ class AgentToolsTest extends AgentTestCase
 {
     public function test_tool_menolak_input_yang_tidak_memenuhi_skema(): void
     {
-        $tool = app(ToolRegistry::class)->get('spreadsheet.read');
+        $tool = app(ToolRegistry::class)->get('document.create');
 
         $this->expectException(InvalidArgumentException::class);
-        $tool->validate([]); // 'dataset' wajib diisi
+        $tool->validate([]); // 'title' wajib diisi
+    }
+
+    public function test_berkas_sumber_yang_tidak_disebut_tidak_pernah_ditebak(): void
+    {
+        $tool   = app(ToolRegistry::class)->get('spreadsheet.read');
+        $result = $tool->execute($tool->validate([]), $this->context());
+
+        $this->assertFalse($result->ok);
+        $this->assertSame('missing_data', $result->errorClass);
+
+        // Kegagalannya informatif: manusia diberi tahu pilihan yang ada.
+        $this->assertContains('penjualan-2026-07.csv', $result->data['available_datasets']);
+        $this->assertContains('penjualan-2026-08.csv', $result->data['available_datasets']);
     }
 
     public function test_pembacaan_berkas_dikurung_di_dalam_ruang_kerja(): void

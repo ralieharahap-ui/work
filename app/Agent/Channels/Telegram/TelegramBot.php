@@ -111,7 +111,9 @@ class TelegramBot
             default             => $this->createTask($conversation, $text, (string) ($message['message_id'] ?? '')),
         };
 
-        $this->reply($conversation, $reply);
+        if (trim($reply) !== '') {
+            $this->reply($conversation, $reply);
+        }
     }
 
     // ── Penautan akun ─────────────────────────────────────────────────────
@@ -229,16 +231,22 @@ class TelegramBot
             'idempotency_key' => 'telegram:' . $conversation->chat_id . ':' . $messageId,
         ], 'telegram');
 
-        $this->tasks->run($task);
-        $task->refresh();
-
-        return implode("\n", array_filter([
+        // Tanda terima dikirim sebelum pekerjaan dijalankan; pada antrean
+        // 'sync' pekerjaan berjalan seketika, dan kabar hasilnya tidak boleh
+        // mendahului tanda terimanya sendiri.
+        $this->reply($conversation, implode("\n", [
             '📝 Diterima: ' . $task->title,
-            'ID: ' . substr($task->id, 0, 8) . ' · jenis: ' . $task->task_type,
+            // Jenis pekerjaan baru diketahui setelah tahap pemahaman, jadi
+            // tidak disebutkan di tanda terima ini agar tidak menyesatkan.
+            'ID: ' . substr($task->id, 0, 8),
             '',
-            $this->statusLine($task),
-            'Ketik /status ' . substr($task->id, 0, 8) . ' untuk rinciannya.',
+            'Sedang saya kerjakan — hasilnya saya kabari di sini.',
+            'Ketik /status ' . substr($task->id, 0, 8) . ' untuk memantau.',
         ]));
+
+        $this->tasks->run($task);
+
+        return '';
     }
 
     private function listTasks(AgentConversation $conversation): string

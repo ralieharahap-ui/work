@@ -101,8 +101,42 @@ class ScriptedProvider implements LlmProvider
             'risk_level'      => $risk,
             'keywords'        => $this->keywords($objective),
             'expected_output' => $this->expectedOutput($taskType),
+            'context_hints'   => $this->contextHints($objective),
             'clarifications'  => [],
         ];
+    }
+
+    /**
+     * Menarik keterangan yang sudah tersurat di dalam kalimat perintah —
+     * nama berkas dan alamat email. Pengguna chat menuliskannya di kalimat,
+     * bukan di formulir, dan menebaknya belakangan jauh lebih berbahaya
+     * daripada membacanya sejak awal.
+     *
+     * @return array<string, mixed>
+     */
+    private function contextHints(string $objective): array
+    {
+        $hints = [];
+
+        preg_match_all('/[\w\-.]+\.(?:csv|tsv)\b/iu', $objective, $files);
+        $datasets = array_values(array_unique($files[0] ?? []));
+
+        if (isset($datasets[0])) {
+            $hints['dataset'] = $datasets[0];
+        }
+
+        if (count($datasets) >= 2) {
+            $hints['dataset_a'] = $datasets[0];
+            $hints['dataset_b'] = $datasets[1];
+        }
+
+        preg_match_all('/[\w.\-+]+@[\w\-]+\.[\w.\-]+/u', $objective, $emails);
+
+        if ($emails[0] !== []) {
+            $hints['email_to'] = array_values(array_unique($emails[0]));
+        }
+
+        return $hints;
     }
 
     private function expectedOutput(string $taskType): string
@@ -155,12 +189,17 @@ class ScriptedProvider implements LlmProvider
     /** @param array<string, mixed> $context */
     private function reportSteps(array $context): array
     {
-        $dataset = (string) ($context['dataset'] ?? 'penjualan.csv');
+        // Nama berkas tidak pernah dikarang: bila tidak disebut, tool yang
+        // akan melaporkan berkas apa saja yang tersedia dan pekerjaan
+        // diserahkan kepada manusia untuk memilih.
+        $dataset = trim((string) ($context['dataset'] ?? ''));
         $metrics = (array) ($context['metrics'] ?? ['revenue', 'units_sold']);
 
         $steps = [[
             'id'        => 'step_1',
-            'objective' => "Ambil data sumber dari berkas {$dataset}",
+            'objective' => $dataset === ''
+                ? 'Ambil data sumber penjualan'
+                : "Ambil data sumber dari berkas {$dataset}",
             'tool'      => 'spreadsheet.read',
             'inputs'    => ['dataset' => $dataset, 'required_columns' => $metrics],
             'dependencies'     => [],
@@ -227,7 +266,7 @@ class ScriptedProvider implements LlmProvider
             'id'        => 'step_1',
             'objective' => 'Ambil data sumber pertama',
             'tool'      => 'spreadsheet.read',
-            'inputs'    => ['dataset' => (string) ($context['dataset_a'] ?? $context['dataset'] ?? 'sumber-a.csv')],
+            'inputs'    => ['dataset' => trim((string) ($context['dataset_a'] ?? $context['dataset'] ?? ''))],
             'dependencies'     => [],
             'success_criteria' => ['has:rows', 'min_rows:1'],
             'risk_level'       => 'low',
@@ -235,7 +274,7 @@ class ScriptedProvider implements LlmProvider
             'id'        => 'step_2',
             'objective' => 'Ambil data sumber pembanding',
             'tool'      => 'spreadsheet.read',
-            'inputs'    => ['dataset' => (string) ($context['dataset_b'] ?? 'sumber-b.csv')],
+            'inputs'    => ['dataset' => trim((string) ($context['dataset_b'] ?? ''))],
             'dependencies'     => [],
             'success_criteria' => ['has:rows', 'min_rows:1'],
             'risk_level'       => 'low',

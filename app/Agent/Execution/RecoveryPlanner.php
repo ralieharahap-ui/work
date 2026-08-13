@@ -36,7 +36,7 @@ class RecoveryPlanner
             'permission'  => Recovery::abort('Agent tidak memiliki izin untuk tindakan ini: ' . $result->error),
             'validation'  => Recovery::escalate('Input langkah tidak memenuhi syarat: ' . $result->error),
             'empty_source'=> Recovery::replan('Sumber data kosong; rencana perlu disesuaikan.'),
-            'missing_data'=> Recovery::escalate((string) $result->error),
+            'missing_data'=> Recovery::humanReview($this->missingDataMessage($result)),
             default       => $this->classifier->isRetryable($errorClass)
                 ? Recovery::retry('Kegagalan sementara — dicoba ulang.')
                 : Recovery::escalate((string) $result->error),
@@ -132,6 +132,16 @@ class RecoveryPlanner
                 'confidence'     => 0.65,
             ],
         );
+    }
+
+    /** Pesan kekurangan data dilengkapi pilihan yang tersedia bila ada. */
+    private function missingDataMessage(ToolResult $result): string
+    {
+        $available = array_map('strval', (array) ($result->data['available_datasets'] ?? []));
+
+        return $available === []
+            ? (string) $result->error
+            : $result->error . ' Berkas yang tersedia: ' . implode(', ', $available) . '.';
     }
 
     /**
