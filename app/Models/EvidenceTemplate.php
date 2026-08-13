@@ -18,6 +18,10 @@ class EvidenceTemplate extends Model
         'Laporan',
         'Checklist',
         'Serah Terima',
+        'Kontrak',
+        'Pengadaan',
+        'Keuangan',
+        'Surat',
     ];
 
     protected $fillable = [

@@ -11,6 +11,7 @@ use App\Services\WhatsApp\WhatsAppResult;
 use App\Support\PhoneNumber;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Menyusun dan mengirim pengingat tugas lewat WhatsApp.
@@ -127,6 +128,41 @@ class TaskWhatsAppReminder
     }
 
     // ── Pengingat satu tugas ─────────────────────────────────────────
+
+    /**
+     * Beri tahu PIC bahwa sebuah tugas baru saja ditugaskan kepadanya.
+     *
+     * Dipicu saat task dibuat dengan PIC, atau saat PIC-nya berganti. Berbeda
+     * dengan digest harian yang merangkum banyak tugas, pesan ini fokus pada
+     * satu tugas dan langsung memuat peringatan tenggatnya.
+     */
+    public function notifyAssignment(Task $task, ?User $actor = null): ?WhatsappNotification
+    {
+        $task->loadMissing(['pic', 'project:id,title']);
+        $user = $task->pic;
+
+        // Tidak ada PIC, atau seseorang menugaskan tugas kepada dirinya sendiri —
+        // memberitahunya lewat WhatsApp hanya akan jadi gangguan.
+        if (! $user || ($actor && $actor->id === $user->id)) {
+            return null;
+        }
+
+        if ($task->status === 'Done') {
+            return null;
+        }
+
+        $today = Carbon::today();
+
+        return $this->deliverToUser(
+            user:      $user,
+            body:      $this->buildAssignmentBody($task, $user, $today, $actor, false),
+            groupBody: $this->buildAssignmentBody($task, $user, $today, $actor, true),
+            taskIds:   [$task->id],
+            type:      'assignment',
+            dedupeKey: null,
+            actor:     $actor,
+        );
+    }
 
     /** Kirim pengingat untuk satu tugas kepada PIC-nya (tombol manual di aplikasi). */
     public function remindSingleTask(Task $task, ?User $actor = null): WhatsappNotification
@@ -332,6 +368,52 @@ class TaskWhatsAppReminder
         return implode("\n", $lines);
     }
 
+    /**
+     * Pesan penugasan. Nada pesannya menyesuaikan tenggat: tugas yang sudah
+     * lewat atau jatuh tempo hari ini diberi seruan untuk segera ditindaklanjuti,
+     * bukan sekadar pemberitahuan.
+     */
+    private function buildAssignmentBody(Task $task, User $user, Carbon $today, ?User $actor, bool $forGroup): string
+    {
+        $days  = $task->deadline ? $this->daysUntil($today, $task->deadline) : null;
+        $lines = [];
+
+        $lines[] = '📋 *TUGAS BARU UNTUK ANDA — ' . $this->companyName() . '*';
+        $lines[] = '';
+        $lines[] = 'Halo ' . $this->mention($user, $forGroup) . ' 👋';
+        $lines[] = $actor
+            ? "*{$actor->name}* menugaskan pekerjaan berikut kepada Anda:"
+            : 'Sebuah pekerjaan baru ditugaskan kepada Anda:';
+        $lines[] = '';
+        $lines[] = '📌 *' . $task->title . '*';
+        $lines[] = $this->taskMeta($task, $today);
+
+        if ($task->project?->title) {
+            $lines[] = 'Proyek: ' . $task->project->title;
+        }
+
+        if (filled($task->description)) {
+            $lines[] = '';
+            $lines[] = '_' . Str::limit(strip_tags((string) $task->description), 300) . '_';
+        }
+
+        $lines[] = '';
+        $lines[] = match (true) {
+            $days === null => 'ℹ️ Tugas ini belum bertenggat. Mohon dikerjakan sesuai arahan.',
+            $days < 0      => '🔴 *PERHATIAN:* tenggatnya sudah lewat ' . abs($days) . ' hari. Mohon segera ditindaklanjuti dan diselesaikan.',
+            $days === 0    => '🟠 *Tenggatnya hari ini.* Mohon segera diselesaikan.',
+            $days <= $this->reminderWindowDays() => '🟡 Tenggatnya tinggal ' . $days . ' hari lagi — mohon segera dikerjakan.',
+            default        => '🗓️ Mohon diselesaikan sebelum tenggat di atas.',
+        };
+        $lines[] = '';
+        $lines[] = 'Buka tugasnya, perbarui status, dan lampirkan *dokumen bukti (evidence)* sebagai syarat penutupan:';
+        $lines[] = $this->tasksUrl();
+        $lines[] = '';
+        $lines[] = '_Pesan otomatis dari Workspace Tugas ' . $this->companyName() . ' — mohon tidak dibalas._';
+
+        return implode("\n", $lines);
+    }
+
     private function buildSingleTaskBody(Task $task, User $user, Carbon $today, ?User $actor, bool $forGroup): string
     {
         $lines = [];
@@ -352,7 +434,7 @@ class TaskWhatsAppReminder
 
         if (filled($task->description)) {
             $lines[] = '';
-            $lines[] = '_' . \Illuminate\Support\Str::limit(strip_tags((string) $task->description), 300) . '_';
+            $lines[] = '_' . Str::limit(strip_tags((string) $task->description), 300) . '_';
         }
 
         $lines[] = '';

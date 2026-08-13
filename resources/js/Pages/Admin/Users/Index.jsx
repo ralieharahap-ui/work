@@ -113,6 +113,11 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                                         <td className="table-cell font-medium text-white">
                                             {u.name}
                                             <p className="text-slate-500 text-xs font-normal">{u.email}</p>
+                                            {/* Tanpa nomor WhatsApp, pengguna ini tidak akan menerima
+                                                pengingat tugas — ditandai agar mudah terlihat admin. */}
+                                            <p className={`text-xs font-normal mt-0.5 ${u.whatsapp_number ? 'text-slate-500' : 'text-amber-500/80'}`}>
+                                                {u.whatsapp_number || 'Nomor WhatsApp belum diisi'}
+                                            </p>
                                         </td>
                                         <td data-label="Divisi" className="table-cell text-slate-400">{u.division?.name ?? '—'}</td>
                                         <td data-label="Jenjang" className="table-cell text-slate-400">{hierarchyLabel[u.hierarchy] ?? u.hierarchy ?? '—'}</td>

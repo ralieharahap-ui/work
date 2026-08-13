@@ -130,14 +130,18 @@ class TaskController extends Controller
         $data = $this->validateTask($request);
         $subtasks = $request->input('subtasks', []);
 
-        DB::transaction(function () use ($data, $subtasks) {
+        $task = DB::transaction(function () use ($data, $subtasks) {
             $task = Task::create([
                 ...$data,
                 'organization_id' => auth()->user()->organization_id,
                 'created_by'      => auth()->id(),
             ]);
             $this->syncChecklist($task, $subtasks);
+
+            return $task;
         });
+
+        $this->notifyAssignment($task);
 
         return back()->with('success', 'Task baru berhasil dibuat.');
     }
@@ -149,6 +153,10 @@ class TaskController extends Controller
 
         $data = $this->validateTask($request);
         $subtasks = $request->input('subtasks', []);
+
+        // Dicatat sebelum diperbarui: PIC yang berganti berarti ada orang baru
+        // yang perlu diberi tahu bahwa pekerjaan ini kini menjadi tanggung jawabnya.
+        $previousPicId = $task->pic_id;
 
         DB::transaction(function () use ($task, $data, $subtasks, $request) {
             $wasDone  = $task->status === 'Done';
@@ -170,6 +178,10 @@ class TaskController extends Controller
             $task->update($data);
             $this->syncChecklist($task, $subtasks);
         });
+
+        if ($task->pic_id && $task->pic_id !== $previousPicId) {
+            $this->notifyAssignment($task->refresh());
+        }
 
         return back()->with('success', 'Task berhasil diperbarui.');
     }
@@ -266,6 +278,33 @@ class TaskController extends Controller
     }
 
     // ── Helpers ──────────────────────────────────────────────
+
+    /**
+     * Kirim pemberitahuan penugasan lewat WhatsApp.
+     *
+     * Dijalankan setelah respons dikirim ke peramban (`terminating`), supaya
+     * pengguna tidak menunggu gateway WhatsApp menjawab — panggilan jaringan ke
+     * gateway bisa memakan beberapa detik. Kegagalannya tidak boleh
+     * menggagalkan penyimpanan task, jadi dicatat saja: riwayat pengiriman
+     * merekamnya, dan digest harian tetap menjadi jaring pengaman.
+     */
+    private function notifyAssignment(Task $task): void
+    {
+        if (! $task->pic_id) {
+            return;
+        }
+
+        $actor = auth()->user();
+
+        app()->terminating(function () use ($task, $actor) {
+            try {
+                app(TaskWhatsAppReminder::class)->notifyAssignment($task, $actor);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+    }
+
     private function authorizeTaskAccess(Task $task): void
     {
         abort_if($task->organization_id !== auth()->user()->organization_id, 403);

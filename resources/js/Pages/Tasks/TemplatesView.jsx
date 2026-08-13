@@ -12,6 +12,10 @@ const CATEGORY_BADGE = {
     Laporan: 'bg-amber-50 text-amber-700',
     Checklist: 'bg-green-50 text-green-700',
     'Serah Terima': 'bg-orange-50 text-orange-700',
+    Kontrak: 'bg-indigo-50 text-indigo-700',
+    Pengadaan: 'bg-teal-50 text-teal-700',
+    Keuangan: 'bg-rose-50 text-rose-700',
+    Surat: 'bg-sky-50 text-sky-700',
 };
 
 /**

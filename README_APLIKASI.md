@@ -60,7 +60,8 @@ tugas per kategori: *terlambat*, *jatuh tempo hari ini*, dan *mendekati tenggat*
 
 | Hal | Keterangan |
 |-----|-----------|
-| **Kapan dikirim** | Harian pada `WHATSAPP_REMINDER_TIME` (bawaan 08:00). Dipicu bila ada tugas dengan sisa hari sesuai `WHATSAPP_REMINDER_DAYS` (bawaan H-3, H-1, hari-H) atau keterlambatan kelipatan `WHATSAPP_OVERDUE_EVERY_DAYS` |
+| **Saat penugasan** | Begitu task dibuat dengan PIC, atau PIC-nya diganti, orang yang ditugaskan langsung menerima pesan berisi rincian tugas + peringatan tenggat. Menugaskan tugas kepada diri sendiri tidak memicu pesan |
+| **Kapan digest dikirim** | Harian pada `WHATSAPP_REMINDER_TIME` (bawaan 08:00). Dipicu bila ada tugas dengan sisa hari sesuai `WHATSAPP_REMINDER_DAYS` (bawaan H-3, H-1, hari-H) atau keterlambatan kelipatan `WHATSAPP_OVERDUE_EVERY_DAYS` |
 | **Mention** | Chat pribadi ditulis `@Nama PIC`. Bila salinan grup diaktifkan, nomor PIC ditandai sungguhan sehingga notifikasinya masuk ke ponsel yang bersangkutan |
 | **Anti-spam** | Satu digest per orang per hari (dicatat lewat kunci dedupe). Tombol pengingat per task dibatasi 2 kali per 10 menit |
 | **Gateway** | `go_whatsapp` atau `waha` (swakelola, **disarankan**) · `log` (uji coba) · `fonnte` · `wablas` · `cloud_api` (Meta) · `webhook` (bot sendiri) |
@@ -159,9 +160,23 @@ Alur lengkap dari template sampai menjadi syarat penutupan task:
    ditandatangani, dokumen **dibekukan** (tidak bisa diubah lagi) dan **otomatis menjadi PDF**.
 5. **Jadikan bukti & tutup task** — PDF-nya langsung dipakai sebagai evidence penutupan.
 
-**Template bawaan:** Berita Acara Penyelesaian Pekerjaan · Berita Acara Serah Terima Dokumen ·
-Kertas Kerja Pemeriksaan · Kertas Kerja Monitoring Progres (landscape) ·
-Laporan Pelaksanaan Tugas · Daftar Simak (Checklist) Verifikasi.
+**Template bawaan (14):**
+
+| Kategori | Template |
+|----------|----------|
+| Kontrak | Kontrak / Perjanjian Kerja Sama |
+| Pengadaan | Surat Penawaran Harga · Purchase Order (PO) · Delivery Order / Surat Jalan |
+| Keuangan | Invoice / Faktur Tagihan · Permintaan Pembayaran |
+| Serah Terima | BAST — Berita Acara Serah Terima Pekerjaan · Berita Acara Serah Terima Dokumen |
+| Surat | Surat Keluar Resmi |
+| Berita Acara | Berita Acara Penyelesaian Pekerjaan |
+| Kertas Kerja | Kertas Kerja Pemeriksaan · Kertas Kerja Monitoring Progres (landscape) |
+| Laporan | Laporan Pelaksanaan Tugas |
+| Checklist | Daftar Simak (Checklist) Verifikasi |
+
+Dokumen bisnis (kontrak, PO, DO, invoice, penawaran, permintaan pembayaran) sudah
+memuat tabel rincian item, perhitungan DPP/PPN, dan blok syarat-ketentuan yang tinggal
+dilengkapi angkanya.
 
 Template bawaan bersifat baca-saja; **duplikasikan** dulu untuk membuat versi milik
 organisasi yang bisa disesuaikan (Super Admin / Manajer / Reviewer).

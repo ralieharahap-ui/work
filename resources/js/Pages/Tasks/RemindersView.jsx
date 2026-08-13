@@ -12,6 +12,12 @@ const STATUS_STYLE = {
     pending: { cls: 'bg-amber-50 text-amber-700', icon: ClockIcon, label: 'Menunggu' },
 };
 
+const TYPE_LABELS = {
+    digest: 'pengingat harian',
+    assignment: 'penugasan',
+    task: 'pengingat manual',
+};
+
 const fmtTime = (d) =>
     d ? new Date(d).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-';
 
@@ -195,7 +201,7 @@ export default function RemindersView({ whatsapp, team, canRunReminders }) {
                                         <td className="p-3 text-[rgba(0,0,0,0.85)] font-medium">{row.user?.name || '—'}</td>
                                         <td className="p-3 text-warm-500">{row.recipient || '—'}</td>
                                         <td className="p-3 text-warm-500">
-                                            {row.channel === 'group' ? 'Grup' : 'Pribadi'} · {row.type === 'digest' ? 'harian' : row.type}
+                                            {row.channel === 'group' ? 'Grup' : 'Pribadi'} · {TYPE_LABELS[row.type] ?? row.type}
                                         </td>
                                         <td className="p-3">
                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${meta.cls}`}>
