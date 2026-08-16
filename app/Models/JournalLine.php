@@ -11,7 +11,7 @@ class JournalLine extends Model
     use HasUuids;
 
     public $timestamps  = false;
-    protected $fillable = ['journal_entry_id', 'account_id', 'debit', 'credit', 'memo'];
+    protected $fillable = ['journal_entry_id', 'account_id', 'aux_code', 'debit', 'credit', 'memo'];
     protected $casts    = ['debit' => 'decimal:2', 'credit' => 'decimal:2'];
 
     public function journalEntry(): BelongsTo { return $this->belongsTo(JournalEntry::class); }

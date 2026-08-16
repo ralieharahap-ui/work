@@ -1,17 +1,37 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { ArrowRightOnRectangleIcon, XCircleIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, XCircleIcon, Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import {
     MapDashboardIcon, PalmPlantationIcon, IndustryIcon, JettyIcon,
     CalculatorColorIcon, UsersColorIcon,
+    AccountsColorIcon, JournalColorIcon, LedgerColorIcon, AssetColorIcon,
+    ReportColorIcon, TaxColorIcon, DocumentColorIcon, VendorColorIcon, ArchiveColorIcon,
+    TaskBoardColorIcon,
 } from '@/Components/AppIcons';
 
 const nav = [
-    { label: 'Dashboard',        href: '/',                   icon: MapDashboardIcon,   perm: null },
-    { label: 'Sumber Cangkang',  href: '/palm-oil-sources',   icon: PalmPlantationIcon, perm: 'inventory.view' },
-    { label: 'Titik Bongkar',    href: '/unloading-points',   icon: IndustryIcon,       perm: 'inventory.view' },
-    { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view' },
-    { label: 'Kalkulasi Proyek', href: '/project-calculator', icon: CalculatorColorIcon, perm: 'inventory.view' },
+    { label: 'Dashboard',        href: '/',                   icon: MapDashboardIcon,   perm: null,               group: 'Supply Chain' },
+    { label: 'Sumber Cangkang',  href: '/palm-oil-sources',   icon: PalmPlantationIcon, perm: 'inventory.view',   group: 'Supply Chain' },
+    { label: 'Titik Bongkar',    href: '/unloading-points',   icon: IndustryIcon,       perm: 'inventory.view',   group: 'Supply Chain' },
+    { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view',   group: 'Supply Chain' },
+    { label: 'Kalkulasi Proyek', href: '/project-calculator', icon: CalculatorColorIcon, perm: 'inventory.view',  group: 'Supply Chain' },
+    // ── Akuntansi / Pembukuan ──
+    { label: 'Daftar Akun',      href: '/books/accounts',      icon: AccountsColorIcon, perm: 'books.view', group: 'Akuntansi' },
+    { label: 'Jurnal Umum',      href: '/books/journal',       icon: JournalColorIcon,  perm: 'books.view', group: 'Akuntansi' },
+    { label: 'Buku Besar',       href: '/books/ledger',        icon: LedgerColorIcon,   perm: 'books.view', group: 'Akuntansi' },
+    { label: 'Daftar Aset',      href: '/books/fixed-assets',  icon: AssetColorIcon,    perm: 'books.view', group: 'Akuntansi' },
+    { label: 'Master Vendor',    href: '/books/vendors',       icon: VendorColorIcon,   perm: 'books.view', group: 'Akuntansi' },
+    { label: 'Master Customer',  href: '/books/customers',     icon: IndustryIcon,      perm: 'books.view', group: 'Akuntansi' },
+    { label: 'Neraca Lajur',     href: '/books/worksheet',     icon: ReportColorIcon,   perm: 'books.view', group: 'Laporan' },
+    { label: 'Neraca',           href: '/books/balance-sheet', icon: ReportColorIcon,   perm: 'books.view', group: 'Laporan' },
+    { label: 'Laba/Rugi',        href: '/books/profit-loss',   icon: ReportColorIcon,   perm: 'books.view', group: 'Laporan' },
+    { label: 'Neraca Saldo',     href: '/books/trial-balance', icon: ReportColorIcon,   perm: 'books.view', group: 'Laporan' },
+    { label: 'Peredaran Bruto',  href: '/books/gross-turnover',icon: TaxColorIcon,      perm: 'books.view', group: 'Laporan' },
+    // ── Dokumen ──
+    { label: 'Dokumen Template', href: '/documents',          icon: DocumentColorIcon, perm: 'letters.view', group: 'Dokumen' },
+    { label: 'Dokumentasi',      href: '/documents/log',      icon: ArchiveColorIcon,  perm: 'letters.view', group: 'Dokumen' },
+    // ── Manajemen Tugas ──
+    { label: 'Manajemen Tugas',  href: '/tasks',              icon: TaskBoardColorIcon, perm: 'tasks.view' },
     { label: 'Manajemen User',   href: '/admin/users',        icon: UsersColorIcon,     role: 'super_admin' },
 ];
 
@@ -121,6 +141,62 @@ export default function AppLayout({ children, title }) {
 
     const visible = nav.filter(canSee);
 
+    // Kelompokkan menu jadi seksi berurutan (grup collapsible + item tanpa grup).
+    const sections = [];
+    visible.forEach((item) => {
+        const g = item.group || null;
+        const last = sections[sections.length - 1];
+        if (last && last.group === g) last.items.push(item);
+        else sections.push({ group: g, items: [item] });
+    });
+
+    // Buka grup yang memuat halaman aktif; sisanya tertutup agar tidak penuh scroll.
+    const [openGroups, setOpenGroups] = useState(() => {
+        const path = window.location.pathname;
+        const st = {};
+        nav.forEach((it) => {
+            if (it.group) {
+                const act = it.href === '/' ? path === '/' : path.startsWith(it.href);
+                if (act) st[it.group] = true;
+            }
+        });
+        return st;
+    });
+    const toggleGroup = (g) => setOpenGroups((s) => ({ ...s, [g]: !s[g] }));
+
+    const renderLink = (item, i) => {
+        const active = isActive(item.href);
+        return (
+            <Link
+                key={item.href}
+                href={item.href}
+                style={{ animationDelay: `${i * 45}ms` }}
+                className={`group relative flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-sm font-medium
+                    animate-slide-in-left transition-all duration-200 lg:hover:translate-x-1
+                    ${active
+                        ? 'bg-blue-600/15 text-blue-200 shadow-sm shadow-blue-900/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/70'}`}
+            >
+                {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-gradient-to-b from-blue-400 to-sky-400 animate-grow-y" />
+                )}
+                <item.icon
+                    className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300
+                        lg:group-hover:scale-125 lg:group-hover:-rotate-6
+                        ${active ? 'scale-110 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]' : ''}`}
+                />
+                <span className="flex-1 truncate">{item.label}</span>
+                {item.href === '/admin/users' && pendingUsersCount > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center animate-bounce-soft">
+                        {pendingUsersCount}
+                    </span>
+                )}
+            </Link>
+        );
+    };
+
+    const groupHasActive = (sec) => sec.items.some((it) => isActive(it.href));
+
     const SidebarContent = (
         <>
             <div className="px-4 sm:px-5 h-16 flex items-center gap-3 border-b border-slate-800/80 shrink-0">
@@ -143,35 +219,30 @@ export default function AppLayout({ children, title }) {
             </div>
 
             <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-                <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Menu</p>
-                {visible.map((item, i) => {
-                    const active = isActive(item.href);
+                {sections.map((sec, si) => {
+                    if (sec.group === null) {
+                        return (
+                            <div key={`s${si}`} className="space-y-1">
+                                {si === 0 && <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Menu</p>}
+                                {sec.items.map((it, i) => renderLink(it, i))}
+                            </div>
+                        );
+                    }
+                    const open = !!openGroups[sec.group];
+                    const hasActive = groupHasActive(sec);
                     return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            style={{ animationDelay: `${i * 55}ms` }}
-                            className={`group relative flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-sm font-medium
-                                animate-slide-in-left transition-all duration-200 lg:hover:translate-x-1
-                                ${active
-                                    ? 'bg-blue-600/15 text-blue-200 shadow-sm shadow-blue-900/30'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'}`}
-                        >
-                            {active && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-gradient-to-b from-blue-400 to-sky-400 animate-grow-y" />
-                            )}
-                            <item.icon
-                                className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300
-                                    lg:group-hover:scale-125 lg:group-hover:-rotate-6
-                                    ${active ? 'scale-110 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]' : ''}`}
-                            />
-                            <span className="flex-1 truncate">{item.label}</span>
-                            {item.href === '/admin/users' && pendingUsersCount > 0 && (
-                                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center animate-bounce-soft">
-                                    {pendingUsersCount}
-                                </span>
-                            )}
-                        </Link>
+                        <div key={`s${si}`} className="pt-2">
+                            <button
+                                onClick={() => toggleGroup(sec.group)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-colors
+                                    ${hasActive ? 'text-blue-300' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                <span className="flex-1 text-left">{sec.group}</span>
+                                {!open && hasActive && <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
+                                <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+                            </button>
+                            {open && <div className="space-y-1 mt-1">{sec.items.map((it, i) => renderLink(it, i))}</div>}
+                        </div>
                     );
                 })}
             </nav>
