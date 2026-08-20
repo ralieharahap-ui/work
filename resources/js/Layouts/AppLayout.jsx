@@ -30,6 +30,7 @@ const nav = [
     { label: 'Neraca Saldo',     href: '/books/trial-balance', icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Peredaran Bruto',  href: '/books/gross-turnover',icon: TaxColorIcon,      perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Kontrol Pajak',    href: '/books/tax-control',   icon: TaxColorIcon,      perm: 'books.view', biomassa: true, group: 'Laporan' },
+    { label: 'Audit AI',         href: '/books/audit',         icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
     // ── Dokumen ──
     { label: 'Dokumen Template', href: '/documents',          icon: DocumentColorIcon, perm: 'letters.view', biomassa: true, group: 'Dokumen' },
     { label: 'Dokumentasi',      href: '/documents/log',      icon: ArchiveColorIcon,  perm: 'letters.view', biomassa: true, group: 'Dokumen' },

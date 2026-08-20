@@ -15,6 +15,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskProjectController;
@@ -143,6 +144,9 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/profit-loss',    [ReportController::class, 'profitLoss'])->name('books.profit-loss');
         Route::get('/gross-turnover', [ReportController::class, 'grossTurnover'])->name('books.gross-turnover');
         Route::get('/tax-control',    [ReportController::class, 'taxControl'])->name('books.tax-control');
+
+        // Layer Audit AI — antrean anomali jurnal (Tahap 8 automasi)
+        Route::get('/audit', [AuditController::class, 'index'])->name('books.audit');
     });
 
     // Dokumen Template (Design & Generate) — terintegrasi modul terkait
