@@ -227,6 +227,88 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Kontrol Pajak (Tahap 4 automasi PDF: Tax control).
+     * Rekonsiliasi PPN Masukan/Keluaran & PPh (terutang vs dibayar dimuka),
+     * per bulan, dari jurnal yang telah dirilis. KPI: selisih PPN kurang bayar
+     * transparan, saldo PPh terutang yang belum disetor terlihat.
+     */
+    public function taxControl(Request $request): Response
+    {
+        $orgId = auth()->user()->organization_id;
+        $year  = (int) $request->get('year', now()->year);
+
+        // Peta kode akun pajak restated → sisi normal untuk perhitungan saldo.
+        $map = [
+            '1501' => 'debit',  // PPN Masukan Dapat Dikreditkan (aset)
+            '2201' => 'credit', // PPN Keluaran (liabilitas)
+            '2202' => 'credit', // PPh 21 Terutang
+            '2203' => 'credit', // PPh 22 Terutang
+            '2204' => 'credit', // PPh 23 Terutang
+            '2205' => 'credit', // PPh Final 4(2) Terutang
+            '1502' => 'debit',  // PPh 22 Dibayar Dimuka (kredit pajak)
+            '1503' => 'debit',  // PPh 23 Dibayar Dimuka (kredit pajak)
+        ];
+
+        $accounts = Account::where('organization_id', $orgId)
+            ->whereIn('code', array_keys($map))
+            ->get(['id', 'code', 'name'])
+            ->keyBy('code');
+
+        $idToCode = $accounts->mapWithKeys(fn ($a) => [$a->id => $a->code]);
+
+        // Saldo bulanan (index 1..12) per kode akun pajak.
+        $monthly = array_fill_keys(array_keys($map), array_fill(1, 12, 0.0));
+
+        $lines = JournalLine::whereIn('account_id', $idToCode->keys())
+            ->whereHas('journalEntry', fn ($q) => $q->where('is_posted', true)->whereYear('entry_date', $year))
+            ->with('journalEntry:id,entry_date')
+            ->get();
+
+        foreach ($lines as $line) {
+            $code = $idToCode[$line->account_id] ?? null;
+            if (! $code) continue;
+            $month  = (int) $line->journalEntry->entry_date->format('n');
+            $signed = $map[$code] === 'debit'
+                ? (float) $line->debit - (float) $line->credit
+                : (float) $line->credit - (float) $line->debit;
+            $monthly[$code][$month] += $signed;
+        }
+
+        $rowFor = fn (string $code) => [
+            'code' => $code,
+            'name' => $accounts[$code]->name ?? $code,
+            'months' => array_values($monthly[$code]),
+            'total'  => array_sum($monthly[$code]),
+        ];
+
+        // Susunan PPN per bulan: Keluaran − Masukan = kurang/(lebih) bayar.
+        $ppnMonthly = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $masukan  = $monthly['1501'][$m];
+            $keluaran = $monthly['2201'][$m];
+            $ppnMonthly[] = [
+                'month'    => $m,
+                'label'    => \Carbon\Carbon::create($year, $m, 1)->translatedFormat('M'),
+                'masukan'  => $masukan,
+                'keluaran' => $keluaran,
+                'kurang_bayar' => $keluaran - $masukan,
+            ];
+        }
+
+        return Inertia::render('Books/TaxControl', [
+            'year' => $year,
+            'ppn'  => [
+                'monthly'        => $ppnMonthly,
+                'total_masukan'  => array_sum($monthly['1501']),
+                'total_keluaran' => array_sum($monthly['2201']),
+                'total_kurang_bayar' => array_sum($monthly['2201']) - array_sum($monthly['1501']),
+            ],
+            'pph_terutang' => array_map($rowFor, ['2202', '2203', '2204', '2205']),
+            'pph_dimuka'   => array_map($rowFor, ['1502', '1503']),
+        ]);
+    }
+
     private function sumType(string $orgId, string $type, string $from, string $to): array
     {
         $accounts = Account::where('organization_id', $orgId)

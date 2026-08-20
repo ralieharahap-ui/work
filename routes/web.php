@@ -142,6 +142,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/balance-sheet',  [ReportController::class, 'balanceSheet'])->name('books.balance-sheet');
         Route::get('/profit-loss',    [ReportController::class, 'profitLoss'])->name('books.profit-loss');
         Route::get('/gross-turnover', [ReportController::class, 'grossTurnover'])->name('books.gross-turnover');
+        Route::get('/tax-control',    [ReportController::class, 'taxControl'])->name('books.tax-control');
     });
 
     // Dokumen Template (Design & Generate) — terintegrasi modul terkait
