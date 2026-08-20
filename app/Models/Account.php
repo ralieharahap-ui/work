@@ -11,7 +11,7 @@ class Account extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['organization_id', 'code', 'name', 'type', 'account_type', 'normal_balance', 'report', 'parent_id', 'is_active'];
+    protected $fillable = ['organization_id', 'code', 'name', 'type', 'account_type', 'fs_group', 'normal_balance', 'report', 'parent_id', 'is_active'];
     protected $casts    = ['is_active' => 'boolean'];
 
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }

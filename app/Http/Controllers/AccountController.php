@@ -33,10 +33,12 @@ class AccountController extends Controller
 
                 // Tempatkan saldo neto pada kolom sesuai posisi normal akun.
                 return [
+                    'id'             => $account->id,
                     'code'           => $account->code,
                     'name'           => $account->name,
                     'type'           => $account->type,
                     'account_type'   => $account->account_type,
+                    'fs_group'       => $account->fs_group,
                     'normal_balance' => $account->normal_balance,
                     'report'         => $account->report,
                     'debit'          => $net > 0 ? $net : 0,
@@ -100,6 +102,7 @@ class AccountController extends Controller
             'name'           => 'required|string|max:255',
             'type'           => 'required|in:asset,liability,equity,revenue,expense',
             'account_type'   => 'nullable|string|max:100',
+            'fs_group'       => 'nullable|string|max:100',
             'normal_balance' => 'nullable|in:Db,Kr',
             'report'         => 'nullable|in:NRC,LR',
             'is_active'      => 'boolean',
@@ -108,7 +111,7 @@ class AccountController extends Controller
 
     /**
      * Referensi Control Account — poin 1.7.
-     * 21 TYPE AKUN dengan posisi normal (Db/Kr) dan pemetaan laporan (NRC / LR).
+     * Daftar TYPE AKUN dengan posisi normal (Db/Kr) dan pemetaan laporan (NRC / LR).
      */
     private function controlAccounts(): array
     {
@@ -117,12 +120,14 @@ class AccountController extends Controller
             ['AKTIVA',     'Kas',                                  'Db', 'NRC'],
             ['AKTIVA',     'Kas di Bank',                          'Db', 'NRC'],
             ['AKTIVA',     'Piutang Usaha',                        'Db', 'NRC'],
+            ['AKTIVA',     'Cadangan Kerugian Piutang',            'Kr', 'NRC'],
             ['AKTIVA',     'Aset Lancar Lainnya',                  'Db', 'NRC'],
             ['AKTIVA',     'Persediaan',                           'Db', 'NRC'],
             ['AKTIVA',     'PPN Masukan',                          'Db', 'NRC'],
+            ['AKTIVA',     'Pajak Dibayar Dimuka',                 'Db', 'NRC'],
             ['AKTIVA',     'Aset Tetap',                           'Db', 'NRC'],
             ['AKTIVA',     'Aset Lain-lain',                       'Db', 'NRC'],
-            ['AKTIVA',     'Aset Tetap (Kontra/Akum. Penyusutan)', 'Db', 'NRC'],
+            ['AKTIVA',     'Aset Tetap (Kontra/Akum. Penyusutan)', 'Kr', 'NRC'],
             ['KEWAJIBAN',  'Utang Usaha',                          'Kr', 'NRC'],
             ['KEWAJIBAN',  'Liabilitas Jangka Pendek Lainnya',     'Kr', 'NRC'],
             ['KEWAJIBAN',  'Liabilitas Jangka Panjang Lainnya',    'Kr', 'NRC'],
