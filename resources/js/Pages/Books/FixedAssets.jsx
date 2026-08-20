@@ -5,9 +5,18 @@ import { useState } from 'react';
 const fmt = (n) => (Number(n) ? new Intl.NumberFormat('id-ID').format(Math.round(n)) : '—');
 const tgl = (s) => (s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
-export default function FixedAssets({ assets, as_of, accounts, totals, can_manage }) {
+export default function FixedAssets({ assets, as_of, accounts, totals, can_manage, depreciation }) {
     const [editing, setEditing] = useState(null); // null | {} baru | {..} edit
     const [date, setDate] = useState(as_of);
+    const [period, setPeriod] = useState(depreciation?.current_period ?? '');
+
+    const postedSet = new Set(depreciation?.posted_periods ?? []);
+    const alreadyPosted = postedSet.has(period);
+
+    const postDepreciation = () => {
+        if (!period) return;
+        router.post(route('books.fixed-assets.depreciate'), { period }, { preserveScroll: true });
+    };
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
         description: '', purchase_date: new Date().toISOString().slice(0, 10),
@@ -50,6 +59,45 @@ export default function FixedAssets({ assets, as_of, accounts, totals, can_manag
                     {can_manage && <button onClick={openNew} className="btn-primary">+ Aset Baru</button>}
                     <button onClick={() => window.print()} className="btn-secondary">🖨️ Cetak / PDF</button>
                 </div>
+
+                {/* Auto-jurnal penyusutan bulanan (Tahap 5-6 automasi) */}
+                {can_manage && depreciation && (
+                    <div className="card mb-5 print:hidden border border-sky-500/30 bg-sky-500/5">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div>
+                                <p className="text-sky-300 font-semibold text-sm">⚙️ Auto-Jurnal Penyusutan</p>
+                                <p className="text-slate-400 text-xs mt-0.5">
+                                    Posting D <span className="font-mono">6112</span> Beban Penyusutan | K <span className="font-mono">1609</span> Akumulasi Penyusutan.
+                                    Estimasi/bulan: <span className="text-slate-200">{fmt(depreciation.monthly_total)}</span>
+                                </p>
+                            </div>
+                            <div className="flex-1" />
+                            <div>
+                                <label className="label">Periode</label>
+                                <input type="month" className="input w-auto" value={period} onChange={(e) => setPeriod(e.target.value)} />
+                            </div>
+                            <button
+                                onClick={postDepreciation}
+                                disabled={!depreciation.has_accounts || alreadyPosted || !period}
+                                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={!depreciation.has_accounts ? 'Akun 6112/1609 belum ada' : alreadyPosted ? 'Periode ini sudah diposting' : ''}
+                            >
+                                {alreadyPosted ? '✓ Sudah Diposting' : 'Posting Penyusutan'}
+                            </button>
+                        </div>
+                        {!depreciation.has_accounts && (
+                            <p className="text-amber-300 text-xs mt-2">Akun 6112 (Beban Penyusutan) atau 1609 (Akumulasi Penyusutan) belum ada di COA.</p>
+                        )}
+                        {depreciation.posted_periods.length > 0 && (
+                            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                                <span className="text-slate-500 text-xs">Sudah diposting:</span>
+                                {depreciation.posted_periods.map((p) => (
+                                    <span key={p} className="badge badge-green text-[10px]">{p}</span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {can_manage && editing && (
                     <form onSubmit={submit} className="card mb-5 print:hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

@@ -135,6 +135,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/fixed-assets',                [FixedAssetController::class, 'store'])->name('books.fixed-assets.store');
             Route::put('/fixed-assets/{fixedAsset}',    [FixedAssetController::class, 'update'])->name('books.fixed-assets.update');
             Route::delete('/fixed-assets/{fixedAsset}', [FixedAssetController::class, 'destroy'])->name('books.fixed-assets.destroy');
+            Route::post('/fixed-assets/post-depreciation', [FixedAssetController::class, 'postDepreciation'])->name('books.fixed-assets.depreciate');
         });
 
         // Laporan keuangan
