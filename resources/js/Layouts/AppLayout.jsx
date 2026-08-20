@@ -18,6 +18,7 @@ const nav = [
     { label: 'Titik Dermaga',    href: '/jetty-points',       icon: JettyIcon,          perm: 'inventory.view',   biomassa: true, group: 'Supply Chain' },
     { label: 'Kalkulasi Proyek', href: '/project-calculator', icon: CalculatorColorIcon, perm: 'inventory.view',  biomassa: true, group: 'Supply Chain' },
     // ── Akuntansi / Pembukuan ──
+    { label: 'Dashboard Akuntansi', href: '/books/dashboard',  icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Akuntansi' },
     { label: 'Daftar Akun',      href: '/books/accounts',      icon: AccountsColorIcon, perm: 'books.view', biomassa: true, group: 'Akuntansi' },
     { label: 'Jurnal Umum',      href: '/books/journal',       icon: JournalColorIcon,  perm: 'books.view', biomassa: true, group: 'Akuntansi' },
     { label: 'Buku Besar',       href: '/books/ledger',        icon: LedgerColorIcon,   perm: 'books.view', biomassa: true, group: 'Akuntansi' },

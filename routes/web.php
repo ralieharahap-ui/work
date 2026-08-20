@@ -88,6 +88,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Akuntansi / Pembukuan (terintegrasi jurnal yang telah dirilis)
     // Catatan: aksi add/edit/delete dibatasi khusus Super Admin (role:super_admin).
     Route::middleware('permission:books.view')->prefix('books')->group(function () {
+        // Dashboard Manajemen (ringkasan P&L, margin segmen, posisi neraca)
+        Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('books.dashboard');
+
         // Daftar Akun (COA) & Control Account
         Route::get('/accounts', [AccountController::class, 'index'])->name('books.accounts.index');
         Route::middleware('role:super_admin')->group(function () {

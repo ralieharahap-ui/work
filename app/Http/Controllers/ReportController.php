@@ -309,6 +309,95 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Dashboard Manajemen (Tahap 6 automasi PDF: Management reporting).
+     * Ringkasan P&L, posisi neraca ringkas, & margin per segmen pendapatan,
+     * dari jurnal yang telah dirilis (YTD s/d asOf).
+     */
+    public function dashboard(Request $request): Response
+    {
+        $orgId = auth()->user()->organization_id;
+        $year  = (int) $request->get('year', now()->year);
+        $from  = \Carbon\Carbon::create($year, 1, 1)->startOfYear()->toDateString();
+        $to    = \Carbon\Carbon::create($year, 12, 31)->endOfYear()->toDateString();
+
+        // Saldo neto per kode akun (menghormati sisi normal) untuk periode.
+        $bal = $this->balancesByCode($orgId, $from, $to);
+        $sumCodes = fn (array $codes) => collect($codes)->sum(fn ($c) => $bal[$c] ?? 0.0);
+
+        $revenue = $sumCodes(['4101', '4102', '4103']);
+        $otherIncome = $sumCodes(['4201']);
+        $cogs    = $sumCodes(['5101', '5201', '5202', '5203', '5204', '5205', '5206', '5207', '5208', '5209', '5299']);
+        $opex    = $sumCodes(['6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6110', '6111', '6112']);
+        $otherExpense = $sumCodes(['6201']);
+
+        $grossProfit = $revenue - $cogs;
+        $netIncome   = $grossProfit + $otherIncome - $opex - $otherExpense;
+
+        // Margin per segmen pendapatan vs biaya langsung terkait.
+        $segments = [
+            ['name' => 'Trading',  'revenue' => $sumCodes(['4101']), 'cogs' => $sumCodes(['5101'])],
+            ['name' => 'Biomassa', 'revenue' => $sumCodes(['4102']), 'cogs' => $sumCodes(['5201', '5202', '5203', '5204', '5205', '5206'])],
+            ['name' => 'Proyek Lumpsum', 'revenue' => $sumCodes(['4103']), 'cogs' => $sumCodes(['5207', '5208', '5209', '5299'])],
+        ];
+        $segments = array_map(function ($s) {
+            $s['margin'] = $s['revenue'] - $s['cogs'];
+            $s['margin_pct'] = $s['revenue'] > 0 ? round($s['margin'] / $s['revenue'] * 100, 1) : null;
+            return $s;
+        }, $segments);
+
+        // Posisi neraca ringkas (saldo kumulatif s/d akhir tahun).
+        $balAll = $this->balancesByCode($orgId, '1900-01-01', $to);
+        $sumAll = fn (array $codes) => collect($codes)->sum(fn ($c) => $balAll[$c] ?? 0.0);
+        $cash   = $sumAll(['1101', '1102', '1103']);
+        $receivable = $sumAll(['1201', '1202', '1203']);
+        $payable    = $sumAll(['2101', '2102']);
+
+        return Inertia::render('Books/Dashboard', [
+            'year' => $year,
+            'pnl'  => [
+                'revenue'       => $revenue,
+                'other_income'  => $otherIncome,
+                'cogs'          => $cogs,
+                'gross_profit'  => $grossProfit,
+                'opex'          => $opex,
+                'other_expense' => $otherExpense,
+                'net_income'    => $netIncome,
+                'gross_margin_pct' => $revenue > 0 ? round($grossProfit / $revenue * 100, 1) : null,
+            ],
+            'segments' => $segments,
+            'position' => [
+                'cash'       => $cash,
+                'receivable' => $receivable,
+                'payable'    => $payable,
+            ],
+        ]);
+    }
+
+    /**
+     * Saldo neto per kode akun (debit-credit untuk aset/beban, credit-debit
+     * untuk liabilitas/ekuitas/pendapatan) dari jurnal posted dalam rentang.
+     * @return array<string,float>
+     */
+    private function balancesByCode(string $orgId, string $from, string $to): array
+    {
+        $accounts = Account::where('organization_id', $orgId)
+            ->with(['lines' => fn ($q) => $q->whereHas('journalEntry',
+                fn ($q) => $q->where('is_posted', true)->whereBetween('entry_date', [$from, $to])
+            )])
+            ->get(['id', 'code', 'type']);
+
+        $out = [];
+        foreach ($accounts as $a) {
+            $debit  = (float) $a->lines->sum('debit');
+            $credit = (float) $a->lines->sum('credit');
+            $out[$a->code] = in_array($a->type, ['asset', 'expense'], true)
+                ? $debit - $credit
+                : $credit - $debit;
+        }
+        return $out;
+    }
+
     private function sumType(string $orgId, string $type, string $from, string $to): array
     {
         $accounts = Account::where('organization_id', $orgId)
