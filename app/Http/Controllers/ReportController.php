@@ -51,10 +51,33 @@ class ReportController extends Controller
         $revenue = $this->sumType($orgId, 'revenue', $dateFrom, $dateTo);
         $expense = $this->sumType($orgId, 'expense', $dateFrom, $dateTo);
 
+        // Pisahkan beban jadi Biaya Langsung/Direct Cost terkait proyek (HPP,
+        // transport, handling, tenaga ahli, material proyek, dst.) dan Biaya
+        // Tetap/OPEX (gaji kantor, sewa, penyusutan, dst.).
+        // Klasifikasi utama pakai Kelompok FS (fs_group='COGS'); untuk akun
+        // legacy tanpa fs_group, hanya kode 4-digit murni 5xxx = direct
+        // (akun legacy `5-5xxx` bersifat OPEX → masuk biaya tetap).
+        // fs_group diawali "COGS" mencakup 'COGS' & 'COGS / Contract Cost' (5299).
+        $isDirect = function ($a) {
+            if (! blank($a['fs_group'] ?? null)) {
+                return str_starts_with($a['fs_group'], 'COGS');
+            }
+            return (bool) preg_match('/^5\d{3}$/', (string) $a['code']);
+        };
+        $direct = collect($expense['accounts'])->filter($isDirect)->values();
+        $fixed  = collect($expense['accounts'])->reject($isDirect)->values();
+
+        $directTotal = $direct->sum('amount');
+        $fixedTotal  = $fixed->sum('amount');
+        $grossProfit = $revenue['total'] - $directTotal;
+
         return Inertia::render('Books/ProfitLoss', [
             'revenue'      => $revenue,
-            'expense'      => $expense,
-            'net'          => $revenue['total'] - $expense['total'],
+            'direct_cost'  => ['accounts' => $direct, 'total' => $directTotal],
+            'fixed_cost'   => ['accounts' => $fixed,  'total' => $fixedTotal],
+            'gross_profit' => $grossProfit,
+            'gross_margin_pct' => $revenue['total'] > 0 ? round($grossProfit / $revenue['total'] * 100, 1) : null,
+            'net'          => $grossProfit - $fixedTotal,
             'period_from'  => $dateFrom,
             'period_to'    => $dateTo,
         ]);
@@ -409,9 +432,10 @@ class ReportController extends Controller
             )])
             ->get()
             ->map(fn($a) => [
-                'code'   => $a->code,
-                'name'   => $a->name,
-                'amount' => $type === 'revenue'
+                'code'     => $a->code,
+                'name'     => $a->name,
+                'fs_group' => $a->fs_group,
+                'amount'   => $type === 'revenue'
                     ? $a->lines->sum('credit') - $a->lines->sum('debit')
                     : $a->lines->sum('debit')  - $a->lines->sum('credit'),
             ]);
