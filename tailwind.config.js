@@ -12,7 +12,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Segoe UI"', 'ui-sans-serif', 'system-ui', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', '"Segoe UI"', 'ui-sans-serif', 'system-ui', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 // Diselaraskan dengan logo PT Geosys Energi Prima (teal-biru pada ikon)

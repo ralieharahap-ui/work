@@ -308,7 +308,7 @@ export default function AppLayout({ children, title }) {
 
             {/* Konten utama */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                <header className="h-16 shrink-0 bg-slate-900/85 backdrop-blur border-b border-slate-800
+                <header className="h-16 shrink-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-sm shadow-black/20
                                    px-3 sm:px-5 lg:px-6 flex items-center gap-3 sticky top-0 z-10
                                    pt-[env(safe-area-inset-top)] pr-[calc(env(safe-area-inset-right)+0.75rem)]">
                     <button
@@ -320,7 +320,7 @@ export default function AppLayout({ children, title }) {
                         <Bars3Icon className="w-6 h-6" />
                     </button>
 
-                    <h1 className="text-white font-semibold text-[15px] sm:text-base tracking-tight animate-fade-in truncate flex-1 min-w-0">
+                    <h1 className="page-title animate-fade-in truncate flex-1 min-w-0">
                         {title}
                     </h1>
 

@@ -3,6 +3,25 @@
 @tailwind utilities;
 
 @layer base {
+    /* ── Design tokens semantik (satu sumber kebenaran, tema gelap enterprise) ──
+       Dipakai lintas komponen agar warna konsisten & mudah dirawat. */
+    :root {
+        --color-primary: theme('colors.blue.500');       /* aksi utama (teal-petrol logo) */
+        --color-primary-hover: theme('colors.blue.400');
+        --color-secondary: theme('colors.slate.700');
+        --color-background: theme('colors.slate.900');    /* latar aplikasi */
+        --color-surface: theme('colors.slate.800');       /* kartu/panel */
+        --color-surface-2: theme('colors.slate.950');     /* panel lebih dalam (sidebar) */
+        --color-border: theme('colors.slate.700');
+        --color-text: theme('colors.slate.100');          /* teks utama */
+        --color-text-secondary: theme('colors.slate.400');/* teks sekunder */
+        --color-success: theme('colors.emerald.400');
+        --color-warning: theme('colors.amber.400');
+        --color-error: theme('colors.red.400');
+        --color-info: theme('colors.blue.400');
+        --ring-focus: theme('colors.blue.500 / 55%');
+    }
+
     * {
         @apply border-slate-700/70;
     }
@@ -16,7 +35,11 @@
         @apply bg-slate-900 text-slate-100 antialiased;
         font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         text-rendering: optimizeLegibility;
+        letter-spacing: -0.006em; /* rapat halus khas Inter untuk kesan premium */
     }
+
+    /* Hierarki heading konsisten (dipakai lewat utilitas .page-title dst.) */
+    h1, h2, h3, h4 { @apply font-semibold tracking-tight text-white; }
 
     /* Scrollbar tipis & konsisten */
     * {
@@ -85,68 +108,136 @@
 }
 
 @layer components {
+    /* ── Tombol — hierarki jelas, tinggi & padding konsisten, fokus terlihat ── */
     .btn-primary {
-        @apply inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500
-               active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+        @apply inline-flex items-center justify-center gap-2 min-h-[38px] bg-blue-600 hover:bg-blue-500
+               active:scale-[0.985] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
                text-white font-medium rounded-lg px-4 py-2 text-sm
-               shadow-sm shadow-blue-900/30 transition-all duration-150
+               shadow-sm shadow-blue-950/40 transition-all duration-150
                focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900;
     }
     .btn-secondary {
-        @apply inline-flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600
-               active:scale-[0.98] text-white font-medium rounded-lg px-4 py-2 text-sm
-               transition-all duration-150
-               focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900;
+        @apply inline-flex items-center justify-center gap-2 min-h-[38px] bg-slate-700/80 hover:bg-slate-600
+               active:scale-[0.985] disabled:opacity-50 disabled:cursor-not-allowed
+               text-slate-100 font-medium rounded-lg px-4 py-2 text-sm
+               ring-1 ring-inset ring-slate-600/60 transition-all duration-150
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900;
     }
     .btn-danger {
-        @apply inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500
-               active:scale-[0.98] text-white font-medium rounded-lg px-4 py-2 text-sm
-               transition-all duration-150
+        @apply inline-flex items-center justify-center gap-2 min-h-[38px] bg-red-600 hover:bg-red-500
+               active:scale-[0.985] disabled:opacity-50 disabled:cursor-not-allowed
+               text-white font-medium rounded-lg px-4 py-2 text-sm
+               shadow-sm shadow-red-950/40 transition-all duration-150
                focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900;
+    }
+    /* Tombol sukses (mis. Simpan/Setujui) */
+    .btn-success {
+        @apply inline-flex items-center justify-center gap-2 min-h-[38px] bg-emerald-600 hover:bg-emerald-500
+               active:scale-[0.985] disabled:opacity-50 disabled:cursor-not-allowed
+               text-white font-medium rounded-lg px-4 py-2 text-sm
+               shadow-sm shadow-emerald-950/40 transition-all duration-150
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900;
+    }
+    /* Tombol tersier — garis tepi halus, latar transparan */
+    .btn-tertiary {
+        @apply inline-flex items-center justify-center gap-2 min-h-[38px] bg-transparent hover:bg-slate-800
+               active:scale-[0.985] text-slate-200 font-medium rounded-lg px-4 py-2 text-sm
+               ring-1 ring-inset ring-slate-700 hover:ring-slate-600 transition-all duration-150
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500;
     }
     .btn-ghost {
         @apply inline-flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800
-               rounded-lg px-3 py-2 text-sm transition-colors duration-150;
+               rounded-lg px-3 py-2 text-sm transition-colors duration-150
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-600;
     }
 
+    /* ── Form ── */
     .input {
         @apply w-full bg-slate-900/60 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm
                placeholder:text-slate-500 transition-all duration-150
-               focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:bg-slate-900
+               focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 focus:bg-slate-900
                hover:border-slate-600;
+    }
+    /* Input dalam kondisi error (opsional, dipakai bila ada pesan validasi) */
+    .input-error {
+        @apply border-red-500/70 focus:border-red-500 focus:ring-red-500/25;
     }
     .label {
         @apply block text-xs font-medium text-slate-400 mb-1.5 tracking-wide;
     }
+    /* Teks bantuan & pesan error di bawah field */
+    .field-hint  { @apply mt-1 text-xs text-slate-500; }
+    .field-error { @apply mt-1 text-xs text-red-400; }
+    /* Grup seksi dalam form panjang */
+    .form-section {
+        @apply pb-4 mb-4 border-b border-slate-700/60 last:border-0 last:mb-0 last:pb-0;
+    }
 
+    /* ── Kartu / panel ── */
     .card {
-        @apply bg-slate-800/70 border border-slate-700/80 rounded-xl p-4 sm:p-5 lg:p-6 shadow-card
-               backdrop-blur-[2px];
+        @apply bg-slate-800/70 border border-slate-700/70 rounded-xl p-4 sm:p-5 lg:p-6 shadow-card;
     }
     .card-hover {
         @apply transition-all duration-200 hover:border-slate-600 hover:shadow-card-hover hover:-translate-y-0.5;
     }
-
-    .badge {
-        @apply inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full;
+    /* Kartu KPI ringkas untuk dashboard */
+    .kpi-card {
+        @apply bg-slate-800/70 border border-slate-700/70 rounded-xl p-4 sm:p-5 shadow-card
+               transition-all duration-200 hover:border-slate-600;
     }
-    .badge-green  { @apply bg-emerald-500/15 text-emerald-400 ring-1 ring-inset ring-emerald-500/20; }
-    .badge-red    { @apply bg-red-500/15 text-red-400 ring-1 ring-inset ring-red-500/20; }
-    .badge-blue   { @apply bg-blue-500/15 text-blue-400 ring-1 ring-inset ring-blue-500/20; }
-    .badge-amber  { @apply bg-amber-500/15 text-amber-400 ring-1 ring-inset ring-amber-500/20; }
-    .badge-slate  { @apply bg-slate-600/30 text-slate-300 ring-1 ring-inset ring-slate-500/20; }
-    .badge-purple { @apply bg-purple-500/15 text-purple-400 ring-1 ring-inset ring-purple-500/20; }
+    .kpi-label { @apply text-xs font-medium text-slate-400; }
+    .kpi-value { @apply text-2xl font-bold text-white mt-1 tabular-nums; }
 
+    /* ── Badge / chip status ── */
+    .badge {
+        @apply inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap;
+    }
+    .badge-green  { @apply bg-emerald-500/15 text-emerald-400 ring-1 ring-inset ring-emerald-500/25; }
+    .badge-red    { @apply bg-red-500/15 text-red-400 ring-1 ring-inset ring-red-500/25; }
+    .badge-blue   { @apply bg-blue-500/15 text-blue-400 ring-1 ring-inset ring-blue-500/25; }
+    .badge-amber  { @apply bg-amber-500/15 text-amber-400 ring-1 ring-inset ring-amber-500/25; }
+    .badge-slate  { @apply bg-slate-600/30 text-slate-300 ring-1 ring-inset ring-slate-500/25; }
+    .badge-purple { @apply bg-purple-500/15 text-purple-400 ring-1 ring-inset ring-purple-500/25; }
+    /* Alias status semantik (memetakan ke warna di atas) — konsisten lintas modul */
+    .badge-draft, .badge-inactive, .badge-closed          { @apply badge badge-slate; }
+    .badge-pending, .badge-open                            { @apply badge badge-amber; }
+    .badge-approved, .badge-active, .badge-paid, .badge-completed { @apply badge badge-green; }
+    .badge-rejected, .badge-cancelled, .badge-unpaid       { @apply badge badge-red; }
+    .badge-info                                            { @apply badge badge-blue; }
+    /* Titik status kecil */
+    .status-dot { @apply inline-block w-1.5 h-1.5 rounded-full; }
+
+    /* ── Tabel ── */
     .table-header {
         @apply text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3
-               whitespace-nowrap;
+               whitespace-nowrap bg-slate-900/40;
     }
     .table-cell {
         @apply px-4 py-3 text-sm text-slate-200 align-middle;
     }
+    /* Header menempel saat tabel discroll (aman: hanya visual) */
+    .table-sticky thead th { @apply sticky top-0 z-10 backdrop-blur-sm; }
+    /* Zebra & hover baris — dipakai opsional di <table class="table-zebra"> */
+    .table-zebra tbody tr:nth-child(even) { @apply bg-slate-900/25; }
+    .table-zebra tbody tr { @apply transition-colors hover:bg-slate-700/25; }
 
+    /* ── Tipografi halaman ── */
+    .page-title    { @apply text-lg sm:text-xl font-semibold text-white tracking-tight; }
+    .page-subtitle { @apply text-sm text-slate-400 mt-0.5; }
     .section-title {
         @apply text-white font-semibold text-sm flex items-center gap-2 mb-4 pb-3 border-b border-slate-700/70;
+    }
+
+    /* ── State: kosong & memuat ── */
+    .empty-state {
+        @apply flex flex-col items-center justify-center text-center py-12 px-4;
+    }
+    .empty-state-icon { @apply w-12 h-12 text-slate-600 mb-3; }
+    .empty-state-title { @apply text-slate-300 font-medium; }
+    .empty-state-desc  { @apply text-slate-500 text-sm mt-1 max-w-sm; }
+    /* Placeholder memuat (skeleton) */
+    .skeleton {
+        @apply rounded-md bg-slate-700/40 animate-pulse;
     }
 }
 
