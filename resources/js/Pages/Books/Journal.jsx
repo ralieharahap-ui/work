@@ -15,7 +15,7 @@ const STATUS = {
     rejected: { label: 'Ditolak',    cls: 'badge-red' },
 };
 
-export default function Journal({ accounts, entries, year, can_create, approve_level, threshold, aux_codes }) {
+export default function Journal({ accounts, entries, year, can_create, approve_level, threshold, aux_codes, recommendations = [] }) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
@@ -28,10 +28,40 @@ export default function Journal({ accounts, entries, year, can_create, approve_l
     });
 
     const acctById = useMemo(() => Object.fromEntries(accounts.map((a) => [String(a.id), a])), [accounts]);
+    const acctByCode = useMemo(() => Object.fromEntries(accounts.map((a) => [String(a.code), a])), [accounts]);
 
     const setLine = (i, key, val) => setData('lines', data.lines.map((l, idx) => (idx === i ? { ...l, [key]: val } : l)));
     const addLine = () => setData('lines', [...data.lines, emptyLine()]);
     const removeLine = (i) => setData('lines', data.lines.filter((_, idx) => idx !== i));
+
+    // Rekomendasi akun (Tahap 2 automasi): cocokkan keterangan + memo dengan
+    // aturan kata kunci, tampilkan kandidat akun COA yang bisa langsung dipakai.
+    const suggestions = useMemo(() => {
+        const text = [data.description, ...data.lines.map((l) => l.memo)].join(' ').toLowerCase();
+        if (text.trim().length < 3) return [];
+        const scored = [];
+        recommendations.forEach((rule) => {
+            const acc = acctByCode[rule.code];
+            if (!acc) return;
+            let score = 0;
+            rule.keywords.forEach((kw) => { if (kw && text.includes(kw)) score += 1 + (kw.length >= 8 ? 1 : 0); });
+            if (score > 0) scored.push({ acc, side: rule.side, score });
+        });
+        scored.sort((a, b) => b.score - a.score);
+        // Buang duplikat akun, batasi 5 teratas.
+        const seen = new Set();
+        return scored.filter((s) => (seen.has(s.acc.id) ? false : seen.add(s.acc.id))).slice(0, 5);
+    }, [data.description, data.lines, recommendations, acctByCode]);
+
+    // Terapkan saran: isi baris kosong pertama (atau tambah baris) dengan akun.
+    const applySuggestion = (acc, side) => {
+        const idx = data.lines.findIndex((l) => !l.account_id);
+        if (idx === -1) {
+            setData('lines', [...data.lines, { ...emptyLine(), account_id: String(acc.id) }]);
+        } else {
+            setLine(idx, 'account_id', String(acc.id));
+        }
+    };
 
     const totalDebit = data.lines.reduce((s, l) => s + num(l.debit), 0);
     const totalCredit = data.lines.reduce((s, l) => s + num(l.credit), 0);
@@ -116,6 +146,22 @@ export default function Journal({ accounts, entries, year, can_create, approve_l
                                     placeholder="Contoh: Pembayaran ke vendor ..." required />
                             </div>
                         </div>
+
+                        {suggestions.length > 0 && (
+                            <div className="mb-4 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
+                                <p className="text-sky-300 text-xs font-semibold mb-2">💡 Saran akun (otomatis dari keterangan) — klik untuk memakai</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {suggestions.map(({ acc, side }) => (
+                                        <button key={acc.id} type="button" onClick={() => applySuggestion(acc, side)}
+                                            className="inline-flex items-center gap-1.5 rounded-full bg-sky-600/20 hover:bg-sky-600/40 border border-sky-500/40 px-3 py-1 text-xs text-sky-100 transition-colors">
+                                            <span className="font-mono">{acc.code}</span>
+                                            <span>{acc.name}</span>
+                                            <span className="text-sky-300/70">· {side === 'credit' ? 'Kredit' : 'Debet'}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="overflow-x-auto">
                             <table className="w-full">

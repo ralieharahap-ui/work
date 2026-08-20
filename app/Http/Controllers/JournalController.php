@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\JournalEntry;
 use App\Models\JournalAttachment;
 use App\Models\Vendor;
+use App\Services\AccountRecommender;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -87,6 +88,7 @@ class JournalController extends Controller
             'approve_level' => $approveLevel,
             'threshold'     => self::DIRECTOR_THRESHOLD,
             'aux_codes'     => $this->auxCodes($orgId),
+            'recommendations' => app(AccountRecommender::class)->rules(),
         ]);
     }
 
