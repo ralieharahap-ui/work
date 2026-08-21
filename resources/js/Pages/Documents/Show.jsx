@@ -145,25 +145,26 @@ function PersonnelSign({ company, meta, director, type }) {
 }
 
 /** Footer dokumen (poin 3.5) — website, halaman, kode unik.
- *  approval: nota "Mengetahui/Menyetujui Direksi" (dipindah dari area TTD).
- *  lock: {value,label} — QR pengunci dokumen yang sudah ditandatangani/dirilis. */
-function Footer({ company, code, approval, lock }) {
+ *  approval: nota "Mengetahui/Menyetujui Direksi" (dipindah dari area TTD). */
+function Footer({ company, code, approval }) {
     return (
         <div className="doc-footer mt-10 pt-3 border-t border-slate-300 flex flex-wrap items-end justify-between gap-3 text-[10px] text-slate-500">
             <span>Website: {company.website}</span>
             <span className="doc-page">Halaman 1</span>
-            <div className="flex items-end gap-3">
-                {lock && (
-                    <div className="flex items-center gap-1.5">
-                        <QRCodeSVG value={lock.value} size={46} level="M" marginSize={0} bgColor="#ffffff" fgColor="#0f172a" />
-                        <span className="text-emerald-700 font-semibold uppercase tracking-wide">🔒 {lock.label}</span>
-                    </div>
-                )}
-                <div className="text-right leading-relaxed">
-                    <div>Kode Dokumen: {code}</div>
-                    {approval && <div>{approval}</div>}
-                </div>
+            <div className="text-right leading-relaxed">
+                <div>Kode Dokumen: {code}</div>
+                {approval && <div>{approval}</div>}
             </div>
+        </div>
+    );
+}
+
+/** QR verifikasi keaslian (dokumen terkunci) — dipasang di kanan atas. */
+function VerifyQR({ url }) {
+    return (
+        <div className="flex flex-col items-end mt-2">
+            <QRCodeSVG value={url} size={64} level="M" marginSize={0} bgColor="#ffffff" fgColor="#0f172a" />
+            <span className="text-[9px] text-slate-500 mt-0.5">Pindai untuk verifikasi</span>
         </div>
     );
 }
@@ -180,13 +181,10 @@ export default function DocumentsShow({ document, config, company, statuses, can
         ? 'Mengetahui/Menyetujui: Direksi PT Geosys Energi Prima'
         : null;
 
-    // Dokumen yang sudah ditandatangani/dirilis dikunci & diberi QR verifikasi.
+    // Dokumen yang sudah ditandatangani/dirilis dikunci & diberi QR verifikasi
+    // yang menautkan ke halaman verifikasi publik (dapat dipindai siapa pun).
     const locked = ['signed', 'released'].includes(status);
-    const lock = locked ? {
-        value: `PT GEOSYS ENERGI PRIMA\nNo: ${document.number}\nKode: ${code}\nStatus: ${statuses?.[status] || status}`
-            + (document.released_at ? `\nTgl: ${document.released_at}` : ''),
-        label: 'Terkunci',
-    } : null;
+    const verifyUrl = locked ? route('documents.verify', document.id) : null;
 
     const setStatus = (s) => router.patch(route('documents.status', document.id), { status: s }, { preserveScroll: true });
 
@@ -240,9 +238,12 @@ export default function DocumentsShow({ document, config, company, statuses, can
                                         <tr><td className="pr-3 text-slate-500 align-top">Perihal</td><td className="align-top font-medium">: {m.extra?.perihal || '—'}</td></tr>
                                     </tbody>
                                 </table>
-                                <span className="border-2 border-slate-800 px-3 py-1 font-bold tracking-wider">
-                                    {(m.extra?.scope || 'eksternal') === 'internal' ? 'INTERNAL' : 'EKSTERNAL'}
-                                </span>
+                                <div className="flex flex-col items-end gap-2">
+                                    <span className="border-2 border-slate-800 px-3 py-1 font-bold tracking-wider">
+                                        {(m.extra?.scope || 'eksternal') === 'internal' ? 'INTERNAL' : 'EKSTERNAL'}
+                                    </span>
+                                    {verifyUrl && <VerifyQR url={verifyUrl} />}
+                                </div>
                             </div>
                             {/* BODY 2 — kepada / dari */}
                             <div className="flex justify-between items-start mb-4 text-sm gap-6">
@@ -267,9 +268,10 @@ export default function DocumentsShow({ document, config, company, statuses, can
                                 <h2 className="text-2xl font-bold tracking-wide text-slate-900">{title}</h2>
                                 <p className="text-sm text-slate-600">Nomor: <span className="font-mono font-semibold">{document.number}</span></p>
                             </div>
-                            <div className="text-right text-sm text-slate-600">
+                            <div className="text-right text-sm text-slate-600 flex flex-col items-end">
                                 <p>Tanggal: {tgl(document.doc_date)}</p>
                                 {m.extra?.jatuh_tempo && <p>Jatuh Tempo: {tgl(m.extra.jatuh_tempo)}</p>}
+                                {verifyUrl && <VerifyQR url={verifyUrl} />}
                             </div>
                         </div>
                     )}
@@ -609,7 +611,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     )}
 
                     {/* FOOTER */}
-                    <Footer company={company} code={code} approval={approval} lock={lock} />
+                    <Footer company={company} code={code} approval={approval} />
                 </div>
             </AppLayout>
         </>

@@ -30,6 +30,9 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+// ── Verifikasi keaslian dokumen (PUBLIK, tanpa login) — dibuka via QR ──
+Route::get('/verify/{id}', [DocumentController::class, 'verify'])->name('documents.verify');
+
 // ── Protected ─────────────────────────────────────────────
 Route::middleware(['auth', 'active'])->group(function () {
 

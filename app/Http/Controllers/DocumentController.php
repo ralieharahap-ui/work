@@ -428,6 +428,30 @@ class DocumentController extends Controller
         ]);
     }
 
+    /**
+     * Verifikasi keaslian dokumen — PUBLIK (tanpa login), dibuka via QR.
+     * Hanya dokumen yang sudah ditandatangani/dirilis yang dapat diverifikasi,
+     * dan hanya menampilkan info keaslian (bukan rincian nilai/isi).
+     */
+    public function verify(string $id)
+    {
+        $document = Document::find($id);
+        $valid = $document && $this->isLocked($document);
+
+        return view('verify', [
+            'valid'   => $valid,
+            'company' => $this->company(),
+            'doc'     => $valid ? [
+                'number'      => $document->number,
+                'type_label'  => $this->types()[$document->type]['label'] ?? $document->type,
+                'doc_date'    => $document->doc_date->locale('id')->translatedFormat('d F Y'),
+                'status'      => $this->statusOptions()[$document->status] ?? $document->status,
+                'released_at' => $document->released_at?->locale('id')->translatedFormat('d F Y, H:i'),
+                'code'        => 'GEP-' . strtoupper(substr(str_replace('-', '', $document->id), 0, 10)),
+            ] : null,
+        ]);
+    }
+
     public function destroy(Document $document)
     {
         abort_unless($document->organization_id === auth()->user()->organization_id, 403);
