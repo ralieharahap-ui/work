@@ -149,6 +149,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/worksheet',      [ReportController::class, 'worksheet'])->name('books.worksheet');
         Route::get('/balance-sheet',  [ReportController::class, 'balanceSheet'])->name('books.balance-sheet');
         Route::get('/profit-loss',    [ReportController::class, 'profitLoss'])->name('books.profit-loss');
+        Route::get('/changes-in-equity', [ReportController::class, 'changesInEquity'])->name('books.changes-in-equity');
+        Route::get('/cash-flow',      [ReportController::class, 'cashFlow'])->name('books.cash-flow');
         Route::get('/gross-turnover', [ReportController::class, 'grossTurnover'])->name('books.gross-turnover');
         Route::get('/tax-control',    [ReportController::class, 'taxControl'])->name('books.tax-control');
 

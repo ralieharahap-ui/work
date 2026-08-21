@@ -223,6 +223,140 @@ class ReportController extends Controller
     }
 
     /**
+     * Laporan Perubahan Ekuitas (PSAK 1).
+     * Rekonsiliasi ekuitas awal → akhir periode: laba/rugi tahun berjalan,
+     * setoran modal, dividen, dan penyesuaian lain. Ekuitas akhir = ekuitas pada
+     * Neraca per tanggal `to`.
+     */
+    public function changesInEquity(Request $request): Response
+    {
+        $orgId = auth()->user()->organization_id;
+        $from  = $request->get('from', today()->startOfYear()->toDateString());
+        $to    = $request->get('to', today()->toDateString());
+
+        // Saldo (kredit−debet) akun ekuitas untuk kondisi tanggal tertentu.
+        $equitySum = function (string $op, string $date) use ($orgId) {
+            return (float) \App\Models\JournalLine::whereHas('account', fn ($q) =>
+                    $q->where('organization_id', $orgId)->where('type', 'equity'))
+                ->whereHas('journalEntry', fn ($q) =>
+                    $q->where('is_posted', true)->where('entry_date', $op, $date))
+                ->selectRaw('COALESCE(SUM(credit-debit),0) s')->value('s');
+        };
+        // Mutasi (kredit−debet) satu akun (by code) dalam periode.
+        $codeMove = function (string $code) use ($orgId, $from, $to) {
+            return (float) \App\Models\JournalLine::whereHas('account', fn ($q) =>
+                    $q->where('organization_id', $orgId)->where('code', $code))
+                ->whereHas('journalEntry', fn ($q) =>
+                    $q->where('is_posted', true)->whereBetween('entry_date', [$from, $to]))
+                ->selectRaw('COALESCE(SUM(credit-debit),0) s')->value('s');
+        };
+
+        $equityBefore = $equitySum('<', $from);
+        $equityUpTo   = $equitySum('<=', $to);
+
+        $niBefore = $this->sumType($orgId, 'revenue', '1900-01-01', date('Y-m-d', strtotime($from . ' -1 day')))['total']
+                  - $this->sumType($orgId, 'expense', '1900-01-01', date('Y-m-d', strtotime($from . ' -1 day')))['total'];
+        $niPeriod = $this->sumType($orgId, 'revenue', $from, $to)['total']
+                  - $this->sumType($orgId, 'expense', $from, $to)['total'];
+
+        $opening   = $equityBefore + $niBefore;
+        $closing   = $equityUpTo + $niBefore + $niPeriod;
+        $capitalIn = $codeMove('3101');          // setoran modal (kredit−debet)
+        $dividend  = -$codeMove('3301');         // dividen: akun Dividen bersaldo debet → pengurang
+        $other     = ($equityUpTo - $equityBefore) - $capitalIn + $dividend; // penyesuaian lain
+
+        return Inertia::render('Books/ChangesInEquity', [
+            'period_from' => $from,
+            'period_to'   => $to,
+            'opening'     => $opening,
+            'net_income'  => $niPeriod,
+            'capital_in'  => $capitalIn,
+            'dividend'    => $dividend,
+            'other'       => $other,
+            'closing'     => $closing,
+        ]);
+    }
+
+    /**
+     * Laporan Arus Kas (PSAK 2) — metode langsung dari mutasi Kas & Bank.
+     * Tiap jurnal posted yang menyentuh akun kas diklasifikasikan Operasi /
+     * Investasi / Pendanaan berdasarkan akun lawannya. Saldo kas akhir =
+     * saldo kas awal + arus kas bersih periode.
+     */
+    public function cashFlow(Request $request): Response
+    {
+        $orgId = auth()->user()->organization_id;
+        $from  = $request->get('from', today()->startOfYear()->toDateString());
+        $to    = $request->get('to', today()->toDateString());
+
+        $cashIds = Account::where('organization_id', $orgId)
+            ->whereIn('account_type', ['Kas', 'Kas di Bank'])
+            ->pluck('id')->all();
+
+        $cashDelta = function (string $op, string $date) use ($orgId, $cashIds) {
+            if (! $cashIds) return 0.0;
+            return (float) \App\Models\JournalLine::whereIn('account_id', $cashIds)
+                ->whereHas('journalEntry', fn ($q) =>
+                    $q->where('is_posted', true)->where('entry_date', $op, $date))
+                ->selectRaw('COALESCE(SUM(debit-credit),0) s')->value('s'); // kas: debet−kredit
+        };
+
+        $cashOpening = $cashDelta('<', $from);
+        $cashClosing = $cashDelta('<=', $to);
+
+        $sections = ['operasi' => [], 'investasi' => [], 'pendanaan' => []];
+        $totals   = ['operasi' => 0.0, 'investasi' => 0.0, 'pendanaan' => 0.0];
+
+        $entries = \App\Models\JournalEntry::where('organization_id', $orgId)
+            ->where('is_posted', true)
+            ->whereBetween('entry_date', [$from, $to])
+            ->with('lines.account:id,code,type,account_type')
+            ->orderBy('entry_date')->get();
+
+        foreach ($entries as $e) {
+            $cashLines    = $e->lines->whereIn('account_id', $cashIds);
+            if ($cashLines->isEmpty()) continue;
+            $delta        = (float) $cashLines->sum(fn ($l) => (float) $l->debit - (float) $l->credit);
+            if (abs($delta) < 0.005) continue;
+            $counterparts = $e->lines->whereNotIn('account_id', $cashIds);
+
+            // Klasifikasi berdasarkan akun lawan: Investasi (aset tetap/takberwujud)
+            // > Pendanaan (ekuitas / pihak berelasi jangka panjang) > Operasi.
+            $isInvest = $counterparts->contains(fn ($l) =>
+                ($l->account && (str_starts_with($l->account->code, '16') || str_starts_with($l->account->code, '17')))
+                || in_array($l->account?->account_type, ['Aset Tetap', 'Akumulasi Penyusutan', 'Aset Takberwujud'], true));
+            $isFinance = $counterparts->contains(fn ($l) =>
+                $l->account?->type === 'equity'
+                || $l->account?->account_type === 'Utang Pihak Berelasi');
+
+            $key = $isInvest ? 'investasi' : ($isFinance ? 'pendanaan' : 'operasi');
+            $label = $counterparts->map(fn ($l) => $l->account?->name)->filter()->unique()->implode(', ');
+
+            $sections[$key][] = [
+                'date'        => $e->entry_date->toDateString(),
+                'entry_no'    => $e->entry_no,
+                'description' => $e->description,
+                'counterpart' => $label,
+                'amount'      => $delta,
+            ];
+            $totals[$key] += $delta;
+        }
+
+        $netChange = $totals['operasi'] + $totals['investasi'] + $totals['pendanaan'];
+
+        return Inertia::render('Books/CashFlow', [
+            'period_from'  => $from,
+            'period_to'    => $to,
+            'sections'     => $sections,
+            'totals'       => $totals,
+            'net_change'   => $netChange,
+            'cash_opening' => $cashOpening,
+            'cash_closing' => $cashClosing,
+            'is_reconciled'=> round($cashOpening + $netChange, 2) === round($cashClosing, 2),
+        ]);
+    }
+
+    /**
      * Rekap Peredaran Bruto (1.10).
      * Peredaran bruto (pendapatan usaha) per bulan × tarif PPh Final UMKM 0,50%.
      */

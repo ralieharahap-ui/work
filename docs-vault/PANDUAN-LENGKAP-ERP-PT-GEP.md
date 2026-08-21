@@ -136,6 +136,12 @@ Format PSAK 1: **Aset** dipisah **Aset Lancar** vs **Aset Tidak Lancar** (klasif
 ### 2.5 Laba/Rugi bertingkat — `books.profit-loss`
 Format multi-step: **Pendapatan − Biaya Langsung (Beban Pokok Penjualan) = Laba Kotor (+margin%)** lalu **− Biaya Tetap (Beban Usaha) = Laba Bersih**. Klasifikasi biaya: `fs_group` diawali `"Beban Pokok"` → Direct Cost (termasuk `5299`; `"COGS"` juga didukung untuk kompatibilitas lama); selain itu → Biaya Tetap. Fallback akun legacy tanpa fs_group: kode 4-digit murni `5xxx` → Direct, `5-xxxx` legacy → Fixed.
 
+### 2.5b Laporan Perubahan Ekuitas (PSAK 1) — `books.changes-in-equity`
+Rekonsiliasi ekuitas per periode: **Ekuitas Awal + Laba/(Rugi) Tahun Berjalan + Setoran Modal − Dividen ± Penyesuaian Lain = Ekuitas Akhir**. Ekuitas akhir = total ekuitas pada Neraca per tanggal `to`. Setoran modal dari mutasi `3101`, dividen dari mutasi `3301` (saldo debet), sisanya penyesuaian; rekonsiliasi eksak.
+
+### 2.5c Laporan Arus Kas (PSAK 2) — `books.cash-flow`
+Metode langsung dari mutasi **Kas & Bank** (akun kontrol "Kas"/"Kas di Bank"). Tiap jurnal posted yang menyentuh kas diklasifikasikan **Operasi / Investasi / Pendanaan** berdasar akun lawan: Investasi = aset tetap/takberwujud (kode 16xx/17xx); Pendanaan = ekuitas / pihak berelasi; selain itu Operasi. **Saldo Kas Akhir = Saldo Kas Awal + Arus Kas Bersih** (badge terekonsiliasi).
+
 ### 2.6 Peredaran Bruto — `books.gross-turnover`
 Peredaran bruto per bulan × **PPh Final UMKM 0,5%** (`rate = 0.005`), dari akun revenue posted.
 
