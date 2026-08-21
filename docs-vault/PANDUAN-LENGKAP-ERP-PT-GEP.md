@@ -130,8 +130,8 @@ Saldo debet/kredit per akun s/d tanggal.
 ### 2.3 Neraca Lajur (Worksheet) — `books.worksheet`
 Neraca saldo → dipisah ke kolom LR vs NRC berdasar `report`/`type`. Laba berjalan = ΣLR_kredit − ΣLR_debet.
 
-### 2.4 Neraca (Balance Sheet) — `books.balance-sheet`
-Aktiva (type asset, saldo debet) vs Kewajiban+Modal (saldo kredit) + laba tahun berjalan.
+### 2.4 Neraca / Laporan Posisi Keuangan (PSAK 1) — `books.balance-sheet`
+Format PSAK 1: **Aset** dipisah **Aset Lancar** vs **Aset Tidak Lancar** (klasifikasi via `fs_group`: non-lancar bila `fs_group='Aset Tidak Lancar'`); **Liabilitas** dipisah **Jangka Pendek** vs **Jangka Panjang** (jangka panjang bila `fs_group='Liabilitas Jangka Panjang'`); **Ekuitas** + laba/rugi tahun berjalan. Tiap sub-kelompok punya subtotal; ada Total Aset, Total Liabilitas, Total Ekuitas, dan cek seimbang (Total Aset = Total Liabilitas & Ekuitas). Saldo dari jurnal posted s/d tanggal.
 
 ### 2.5 Laba/Rugi bertingkat — `books.profit-loss`
 Format multi-step: **Pendapatan − Biaya Langsung (Beban Pokok Penjualan) = Laba Kotor (+margin%)** lalu **− Biaya Tetap (Beban Usaha) = Laba Bersih**. Klasifikasi biaya: `fs_group` diawali `"Beban Pokok"` → Direct Cost (termasuk `5299`; `"COGS"` juga didukung untuk kompatibilitas lama); selain itu → Biaya Tetap. Fallback akun legacy tanpa fs_group: kode 4-digit murni `5xxx` → Direct, `5-xxxx` legacy → Fixed.

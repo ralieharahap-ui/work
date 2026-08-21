@@ -146,15 +146,18 @@ class ReportController extends Controller
     }
 
     /**
-     * Neraca / Balance Sheet (1.4).
-     * Aktiva vs Kewajiban + Modal, termasuk laba tahun berjalan.
+     * Neraca / Laporan Posisi Keuangan (PSAK 1).
+     * Aset dipisah Lancar vs Tidak Lancar; Liabilitas dipisah Jangka Pendek vs
+     * Jangka Panjang; ditambah Ekuitas + laba tahun berjalan. Klasifikasi lancar/
+     * tidak-lancar mengikuti kolom Kelompok FS (fs_group). Saldo dari jurnal posted.
      */
     public function balanceSheet(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
         $asOf  = $request->get('as_of', today()->toDateString());
 
-        $group = function (array $types) use ($orgId, $asOf) {
+        // Ambil akun per tipe beserta saldo & fs_group (untuk sub-klasifikasi PSAK).
+        $rows = function (array $types) use ($orgId, $asOf) {
             return Account::where('organization_id', $orgId)
                 ->where('is_active', true)
                 ->whereIn('type', $types)
@@ -166,38 +169,56 @@ class ReportController extends Controller
                 ->map(function ($a) use ($types) {
                     $debit  = (float) $a->lines->sum('debit');
                     $credit = (float) $a->lines->sum('credit');
-                    // Aset = saldo debet; kewajiban & modal = saldo kredit.
                     $amount = in_array('asset', $types, true) ? $debit - $credit : $credit - $debit;
-                    return ['code' => $a->code, 'name' => $a->name, 'amount' => $amount];
+                    return ['code' => $a->code, 'name' => $a->name, 'amount' => $amount, 'fs_group' => $a->fs_group];
                 })
                 ->filter(fn ($r) => abs($r['amount']) > 0.004)
                 ->values();
         };
 
-        $assets      = $group(['asset']);
-        $liabilities = $group(['liability']);
-        $equity      = $group(['equity']);
+        $assetRows = $rows(['asset']);
+        $liabRows  = $rows(['liability']);
+        $equity    = $rows(['equity'])->map(fn ($r) => collect($r)->except('fs_group')->all())->values();
+
+        // Aset: non-lancar bila fs_group "Aset Tidak Lancar"; selain itu lancar.
+        $assetCurrent    = $assetRows->reject(fn ($r) => $r['fs_group'] === 'Aset Tidak Lancar')->values();
+        $assetNonCurrent = $assetRows->filter(fn ($r) => $r['fs_group'] === 'Aset Tidak Lancar')->values();
+        // Liabilitas: jangka panjang bila fs_group "Liabilitas Jangka Panjang"; selain itu jangka pendek.
+        $liabNonCurrent  = $liabRows->filter(fn ($r) => $r['fs_group'] === 'Liabilitas Jangka Panjang')->values();
+        $liabCurrent     = $liabRows->reject(fn ($r) => $r['fs_group'] === 'Liabilitas Jangka Panjang')->values();
+
+        $strip = fn ($col) => $col->map(fn ($r) => collect($r)->except('fs_group')->all())->values();
 
         // Laba tahun berjalan (pendapatan − beban) s/d asOf.
         $revenue = $this->sumType($orgId, 'revenue', '1900-01-01', $asOf);
         $expense = $this->sumType($orgId, 'expense', '1900-01-01', $asOf);
         $netIncome = $revenue['total'] - $expense['total'];
 
-        $totalAssets = $assets->sum('amount');
-        $totalLiab   = $liabilities->sum('amount');
-        $totalEquity = $equity->sum('amount') + $netIncome;
+        $totalAssetCurrent    = $assetCurrent->sum('amount');
+        $totalAssetNonCurrent = $assetNonCurrent->sum('amount');
+        $totalAssets          = $totalAssetCurrent + $totalAssetNonCurrent;
+        $totalLiabCurrent     = $liabCurrent->sum('amount');
+        $totalLiabNonCurrent  = $liabNonCurrent->sum('amount');
+        $totalLiab            = $totalLiabCurrent + $totalLiabNonCurrent;
+        $totalEquity          = $equity->sum('amount') + $netIncome;
 
         return Inertia::render('Books/BalanceSheet', [
-            'assets'          => $assets,
-            'liabilities'     => $liabilities,
-            'equity'          => $equity,
-            'net_income'      => $netIncome,
-            'total_assets'    => $totalAssets,
-            'total_liab'      => $totalLiab,
-            'total_equity'    => $totalEquity,
-            'total_liab_equity' => $totalLiab + $totalEquity,
-            'is_balanced'     => round($totalAssets, 2) === round($totalLiab + $totalEquity, 2),
-            'as_of'           => $asOf,
+            'asset_current'         => $strip($assetCurrent),
+            'asset_noncurrent'      => $strip($assetNonCurrent),
+            'liab_current'          => $strip($liabCurrent),
+            'liab_noncurrent'       => $strip($liabNonCurrent),
+            'equity'                => $equity,
+            'net_income'            => $netIncome,
+            'total_asset_current'   => $totalAssetCurrent,
+            'total_asset_noncurrent'=> $totalAssetNonCurrent,
+            'total_assets'          => $totalAssets,
+            'total_liab_current'    => $totalLiabCurrent,
+            'total_liab_noncurrent' => $totalLiabNonCurrent,
+            'total_liab'            => $totalLiab,
+            'total_equity'          => $totalEquity,
+            'total_liab_equity'     => $totalLiab + $totalEquity,
+            'is_balanced'           => round($totalAssets, 2) === round($totalLiab + $totalEquity, 2),
+            'as_of'                 => $asOf,
         ]);
     }
 
