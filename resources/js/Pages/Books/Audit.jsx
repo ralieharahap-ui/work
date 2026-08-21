@@ -34,21 +34,21 @@ export default function Audit({ year, exceptions, summary, margin }) {
 
                 {/* Ringkasan */}
                 <div className="grid gap-3 sm:grid-cols-4 mb-5">
-                    <button onClick={() => setFilter('all')} className={`card text-left transition-all ${filter === 'all' ? 'ring-2 ring-blue-500' : ''}`}>
-                        <p className="text-slate-400 text-xs">Total Pengecualian</p>
-                        <p className="text-2xl font-bold mt-1 text-white">{summary.total}</p>
+                    <button onClick={() => setFilter('all')} className={`kpi-card text-left ${filter === 'all' ? 'ring-2 ring-blue-500' : ''}`}>
+                        <p className="kpi-label">Total Pengecualian</p>
+                        <p className="kpi-value">{summary.total}</p>
                     </button>
-                    <button onClick={() => setFilter('high')} className={`card text-left transition-all ${filter === 'high' ? 'ring-2 ring-red-500' : ''}`}>
-                        <p className="text-slate-400 text-xs">Tinggi</p>
-                        <p className="text-2xl font-bold mt-1 text-red-400">{summary.high}</p>
+                    <button onClick={() => setFilter('high')} className={`kpi-card text-left ${filter === 'high' ? 'ring-2 ring-red-500' : ''}`}>
+                        <p className="kpi-label">Tinggi</p>
+                        <p className="kpi-value text-red-400">{summary.high}</p>
                     </button>
-                    <button onClick={() => setFilter('medium')} className={`card text-left transition-all ${filter === 'medium' ? 'ring-2 ring-amber-500' : ''}`}>
-                        <p className="text-slate-400 text-xs">Sedang</p>
-                        <p className="text-2xl font-bold mt-1 text-amber-400">{summary.medium}</p>
+                    <button onClick={() => setFilter('medium')} className={`kpi-card text-left ${filter === 'medium' ? 'ring-2 ring-amber-500' : ''}`}>
+                        <p className="kpi-label">Sedang</p>
+                        <p className="kpi-value text-amber-400">{summary.medium}</p>
                     </button>
-                    <button onClick={() => setFilter('low')} className={`card text-left transition-all ${filter === 'low' ? 'ring-2 ring-slate-500' : ''}`}>
-                        <p className="text-slate-400 text-xs">Rendah</p>
-                        <p className="text-2xl font-bold mt-1 text-slate-300">{summary.low}</p>
+                    <button onClick={() => setFilter('low')} className={`kpi-card text-left ${filter === 'low' ? 'ring-2 ring-slate-500' : ''}`}>
+                        <p className="kpi-label">Rendah</p>
+                        <p className="kpi-value text-slate-300">{summary.low}</p>
                     </button>
                 </div>
 

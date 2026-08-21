@@ -7,9 +7,9 @@ const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`);
 
 function Tile({ label, value, sub, accent = 'text-white' }) {
     return (
-        <div className="card">
-            <p className="text-slate-400 text-xs">{label}</p>
-            <p className={`text-2xl font-bold mt-1 ${accent}`}>{fmt(value)}</p>
+        <div className="kpi-card">
+            <p className="kpi-label">{label}</p>
+            <p className={`kpi-value ${accent}`}>{fmt(value)}</p>
             {sub && <p className="text-slate-500 text-[11px] mt-1">{sub}</p>}
         </div>
     );
