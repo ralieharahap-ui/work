@@ -28,6 +28,8 @@ const nav = [
     { label: 'Neraca Lajur',     href: '/books/worksheet',     icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Neraca',           href: '/books/balance-sheet', icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Laba/Rugi',        href: '/books/profit-loss',   icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
+    { label: 'Perubahan Ekuitas',href: '/books/changes-in-equity', icon: ReportColorIcon, perm: 'books.view', biomassa: true, group: 'Laporan' },
+    { label: 'Arus Kas',         href: '/books/cash-flow',     icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Neraca Saldo',     href: '/books/trial-balance', icon: ReportColorIcon,   perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Peredaran Bruto',  href: '/books/gross-turnover',icon: TaxColorIcon,      perm: 'books.view', biomassa: true, group: 'Laporan' },
     { label: 'Kontrol Pajak',    href: '/books/tax-control',   icon: TaxColorIcon,      perm: 'books.view', biomassa: true, group: 'Laporan' },

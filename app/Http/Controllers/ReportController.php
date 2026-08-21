@@ -51,16 +51,17 @@ class ReportController extends Controller
         $revenue = $this->sumType($orgId, 'revenue', $dateFrom, $dateTo);
         $expense = $this->sumType($orgId, 'expense', $dateFrom, $dateTo);
 
-        // Pisahkan beban jadi Biaya Langsung/Direct Cost terkait proyek (HPP,
-        // transport, handling, tenaga ahli, material proyek, dst.) dan Biaya
-        // Tetap/OPEX (gaji kantor, sewa, penyusutan, dst.).
-        // Klasifikasi utama pakai Kelompok FS (fs_group='COGS'); untuk akun
-        // legacy tanpa fs_group, hanya kode 4-digit murni 5xxx = direct
-        // (akun legacy `5-5xxx` bersifat OPEX → masuk biaya tetap).
-        // fs_group diawali "COGS" mencakup 'COGS' & 'COGS / Contract Cost' (5299).
+        // Pisahkan beban jadi Beban Pokok Penjualan / Biaya Langsung terkait
+        // proyek (transport, handling, tenaga ahli, material proyek, dst.) dan
+        // Biaya Tetap / Beban Usaha (gaji kantor, sewa, penyusutan, dst.).
+        // Klasifikasi utama pakai Kelompok FS (fs_group PSAK "Beban Pokok
+        // Penjualan"; 'COGS'/'COGS / Contract Cost' didukung untuk kompatibilitas
+        // lama). Untuk akun legacy tanpa fs_group, hanya kode 4-digit murni 5xxx
+        // = direct (akun legacy `5-5xxx` bersifat OPEX → masuk biaya tetap).
         $isDirect = function ($a) {
             if (! blank($a['fs_group'] ?? null)) {
-                return str_starts_with($a['fs_group'], 'COGS');
+                return str_starts_with($a['fs_group'], 'Beban Pokok')
+                    || str_starts_with($a['fs_group'], 'COGS');
             }
             return (bool) preg_match('/^5\d{3}$/', (string) $a['code']);
         };
@@ -145,15 +146,18 @@ class ReportController extends Controller
     }
 
     /**
-     * Neraca / Balance Sheet (1.4).
-     * Aktiva vs Kewajiban + Modal, termasuk laba tahun berjalan.
+     * Neraca / Laporan Posisi Keuangan (PSAK 1).
+     * Aset dipisah Lancar vs Tidak Lancar; Liabilitas dipisah Jangka Pendek vs
+     * Jangka Panjang; ditambah Ekuitas + laba tahun berjalan. Klasifikasi lancar/
+     * tidak-lancar mengikuti kolom Kelompok FS (fs_group). Saldo dari jurnal posted.
      */
     public function balanceSheet(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
         $asOf  = $request->get('as_of', today()->toDateString());
 
-        $group = function (array $types) use ($orgId, $asOf) {
+        // Ambil akun per tipe beserta saldo & fs_group (untuk sub-klasifikasi PSAK).
+        $rows = function (array $types) use ($orgId, $asOf) {
             return Account::where('organization_id', $orgId)
                 ->where('is_active', true)
                 ->whereIn('type', $types)
@@ -165,38 +169,190 @@ class ReportController extends Controller
                 ->map(function ($a) use ($types) {
                     $debit  = (float) $a->lines->sum('debit');
                     $credit = (float) $a->lines->sum('credit');
-                    // Aset = saldo debet; kewajiban & modal = saldo kredit.
                     $amount = in_array('asset', $types, true) ? $debit - $credit : $credit - $debit;
-                    return ['code' => $a->code, 'name' => $a->name, 'amount' => $amount];
+                    return ['code' => $a->code, 'name' => $a->name, 'amount' => $amount, 'fs_group' => $a->fs_group];
                 })
                 ->filter(fn ($r) => abs($r['amount']) > 0.004)
                 ->values();
         };
 
-        $assets      = $group(['asset']);
-        $liabilities = $group(['liability']);
-        $equity      = $group(['equity']);
+        $assetRows = $rows(['asset']);
+        $liabRows  = $rows(['liability']);
+        $equity    = $rows(['equity'])->map(fn ($r) => collect($r)->except('fs_group')->all())->values();
+
+        // Aset: non-lancar bila fs_group "Aset Tidak Lancar"; selain itu lancar.
+        $assetCurrent    = $assetRows->reject(fn ($r) => $r['fs_group'] === 'Aset Tidak Lancar')->values();
+        $assetNonCurrent = $assetRows->filter(fn ($r) => $r['fs_group'] === 'Aset Tidak Lancar')->values();
+        // Liabilitas: jangka panjang bila fs_group "Liabilitas Jangka Panjang"; selain itu jangka pendek.
+        $liabNonCurrent  = $liabRows->filter(fn ($r) => $r['fs_group'] === 'Liabilitas Jangka Panjang')->values();
+        $liabCurrent     = $liabRows->reject(fn ($r) => $r['fs_group'] === 'Liabilitas Jangka Panjang')->values();
+
+        $strip = fn ($col) => $col->map(fn ($r) => collect($r)->except('fs_group')->all())->values();
 
         // Laba tahun berjalan (pendapatan − beban) s/d asOf.
         $revenue = $this->sumType($orgId, 'revenue', '1900-01-01', $asOf);
         $expense = $this->sumType($orgId, 'expense', '1900-01-01', $asOf);
         $netIncome = $revenue['total'] - $expense['total'];
 
-        $totalAssets = $assets->sum('amount');
-        $totalLiab   = $liabilities->sum('amount');
-        $totalEquity = $equity->sum('amount') + $netIncome;
+        $totalAssetCurrent    = $assetCurrent->sum('amount');
+        $totalAssetNonCurrent = $assetNonCurrent->sum('amount');
+        $totalAssets          = $totalAssetCurrent + $totalAssetNonCurrent;
+        $totalLiabCurrent     = $liabCurrent->sum('amount');
+        $totalLiabNonCurrent  = $liabNonCurrent->sum('amount');
+        $totalLiab            = $totalLiabCurrent + $totalLiabNonCurrent;
+        $totalEquity          = $equity->sum('amount') + $netIncome;
 
         return Inertia::render('Books/BalanceSheet', [
-            'assets'          => $assets,
-            'liabilities'     => $liabilities,
-            'equity'          => $equity,
-            'net_income'      => $netIncome,
-            'total_assets'    => $totalAssets,
-            'total_liab'      => $totalLiab,
-            'total_equity'    => $totalEquity,
-            'total_liab_equity' => $totalLiab + $totalEquity,
-            'is_balanced'     => round($totalAssets, 2) === round($totalLiab + $totalEquity, 2),
-            'as_of'           => $asOf,
+            'asset_current'         => $strip($assetCurrent),
+            'asset_noncurrent'      => $strip($assetNonCurrent),
+            'liab_current'          => $strip($liabCurrent),
+            'liab_noncurrent'       => $strip($liabNonCurrent),
+            'equity'                => $equity,
+            'net_income'            => $netIncome,
+            'total_asset_current'   => $totalAssetCurrent,
+            'total_asset_noncurrent'=> $totalAssetNonCurrent,
+            'total_assets'          => $totalAssets,
+            'total_liab_current'    => $totalLiabCurrent,
+            'total_liab_noncurrent' => $totalLiabNonCurrent,
+            'total_liab'            => $totalLiab,
+            'total_equity'          => $totalEquity,
+            'total_liab_equity'     => $totalLiab + $totalEquity,
+            'is_balanced'           => round($totalAssets, 2) === round($totalLiab + $totalEquity, 2),
+            'as_of'                 => $asOf,
+        ]);
+    }
+
+    /**
+     * Laporan Perubahan Ekuitas (PSAK 1).
+     * Rekonsiliasi ekuitas awal → akhir periode: laba/rugi tahun berjalan,
+     * setoran modal, dividen, dan penyesuaian lain. Ekuitas akhir = ekuitas pada
+     * Neraca per tanggal `to`.
+     */
+    public function changesInEquity(Request $request): Response
+    {
+        $orgId = auth()->user()->organization_id;
+        $from  = $request->get('from', today()->startOfYear()->toDateString());
+        $to    = $request->get('to', today()->toDateString());
+
+        // Saldo (kredit−debet) akun ekuitas untuk kondisi tanggal tertentu.
+        $equitySum = function (string $op, string $date) use ($orgId) {
+            return (float) \App\Models\JournalLine::whereHas('account', fn ($q) =>
+                    $q->where('organization_id', $orgId)->where('type', 'equity'))
+                ->whereHas('journalEntry', fn ($q) =>
+                    $q->where('is_posted', true)->where('entry_date', $op, $date))
+                ->selectRaw('COALESCE(SUM(credit-debit),0) s')->value('s');
+        };
+        // Mutasi (kredit−debet) satu akun (by code) dalam periode.
+        $codeMove = function (string $code) use ($orgId, $from, $to) {
+            return (float) \App\Models\JournalLine::whereHas('account', fn ($q) =>
+                    $q->where('organization_id', $orgId)->where('code', $code))
+                ->whereHas('journalEntry', fn ($q) =>
+                    $q->where('is_posted', true)->whereBetween('entry_date', [$from, $to]))
+                ->selectRaw('COALESCE(SUM(credit-debit),0) s')->value('s');
+        };
+
+        $equityBefore = $equitySum('<', $from);
+        $equityUpTo   = $equitySum('<=', $to);
+
+        $niBefore = $this->sumType($orgId, 'revenue', '1900-01-01', date('Y-m-d', strtotime($from . ' -1 day')))['total']
+                  - $this->sumType($orgId, 'expense', '1900-01-01', date('Y-m-d', strtotime($from . ' -1 day')))['total'];
+        $niPeriod = $this->sumType($orgId, 'revenue', $from, $to)['total']
+                  - $this->sumType($orgId, 'expense', $from, $to)['total'];
+
+        $opening   = $equityBefore + $niBefore;
+        $closing   = $equityUpTo + $niBefore + $niPeriod;
+        $capitalIn = $codeMove('3101');          // setoran modal (kredit−debet)
+        $dividend  = -$codeMove('3301');         // dividen: akun Dividen bersaldo debet → pengurang
+        $other     = ($equityUpTo - $equityBefore) - $capitalIn + $dividend; // penyesuaian lain
+
+        return Inertia::render('Books/ChangesInEquity', [
+            'period_from' => $from,
+            'period_to'   => $to,
+            'opening'     => $opening,
+            'net_income'  => $niPeriod,
+            'capital_in'  => $capitalIn,
+            'dividend'    => $dividend,
+            'other'       => $other,
+            'closing'     => $closing,
+        ]);
+    }
+
+    /**
+     * Laporan Arus Kas (PSAK 2) — metode langsung dari mutasi Kas & Bank.
+     * Tiap jurnal posted yang menyentuh akun kas diklasifikasikan Operasi /
+     * Investasi / Pendanaan berdasarkan akun lawannya. Saldo kas akhir =
+     * saldo kas awal + arus kas bersih periode.
+     */
+    public function cashFlow(Request $request): Response
+    {
+        $orgId = auth()->user()->organization_id;
+        $from  = $request->get('from', today()->startOfYear()->toDateString());
+        $to    = $request->get('to', today()->toDateString());
+
+        $cashIds = Account::where('organization_id', $orgId)
+            ->whereIn('account_type', ['Kas', 'Kas di Bank'])
+            ->pluck('id')->all();
+
+        $cashDelta = function (string $op, string $date) use ($orgId, $cashIds) {
+            if (! $cashIds) return 0.0;
+            return (float) \App\Models\JournalLine::whereIn('account_id', $cashIds)
+                ->whereHas('journalEntry', fn ($q) =>
+                    $q->where('is_posted', true)->where('entry_date', $op, $date))
+                ->selectRaw('COALESCE(SUM(debit-credit),0) s')->value('s'); // kas: debet−kredit
+        };
+
+        $cashOpening = $cashDelta('<', $from);
+        $cashClosing = $cashDelta('<=', $to);
+
+        $sections = ['operasi' => [], 'investasi' => [], 'pendanaan' => []];
+        $totals   = ['operasi' => 0.0, 'investasi' => 0.0, 'pendanaan' => 0.0];
+
+        $entries = \App\Models\JournalEntry::where('organization_id', $orgId)
+            ->where('is_posted', true)
+            ->whereBetween('entry_date', [$from, $to])
+            ->with('lines.account:id,code,type,account_type')
+            ->orderBy('entry_date')->get();
+
+        foreach ($entries as $e) {
+            $cashLines    = $e->lines->whereIn('account_id', $cashIds);
+            if ($cashLines->isEmpty()) continue;
+            $delta        = (float) $cashLines->sum(fn ($l) => (float) $l->debit - (float) $l->credit);
+            if (abs($delta) < 0.005) continue;
+            $counterparts = $e->lines->whereNotIn('account_id', $cashIds);
+
+            // Klasifikasi berdasarkan akun lawan: Investasi (aset tetap/takberwujud)
+            // > Pendanaan (ekuitas / pihak berelasi jangka panjang) > Operasi.
+            $isInvest = $counterparts->contains(fn ($l) =>
+                ($l->account && (str_starts_with($l->account->code, '16') || str_starts_with($l->account->code, '17')))
+                || in_array($l->account?->account_type, ['Aset Tetap', 'Akumulasi Penyusutan', 'Aset Takberwujud'], true));
+            $isFinance = $counterparts->contains(fn ($l) =>
+                $l->account?->type === 'equity'
+                || $l->account?->account_type === 'Utang Pihak Berelasi');
+
+            $key = $isInvest ? 'investasi' : ($isFinance ? 'pendanaan' : 'operasi');
+            $label = $counterparts->map(fn ($l) => $l->account?->name)->filter()->unique()->implode(', ');
+
+            $sections[$key][] = [
+                'date'        => $e->entry_date->toDateString(),
+                'entry_no'    => $e->entry_no,
+                'description' => $e->description,
+                'counterpart' => $label,
+                'amount'      => $delta,
+            ];
+            $totals[$key] += $delta;
+        }
+
+        $netChange = $totals['operasi'] + $totals['investasi'] + $totals['pendanaan'];
+
+        return Inertia::render('Books/CashFlow', [
+            'period_from'  => $from,
+            'period_to'    => $to,
+            'sections'     => $sections,
+            'totals'       => $totals,
+            'net_change'   => $netChange,
+            'cash_opening' => $cashOpening,
+            'cash_closing' => $cashClosing,
+            'is_reconciled'=> round($cashOpening + $netChange, 2) === round($cashClosing, 2),
         ]);
     }
 

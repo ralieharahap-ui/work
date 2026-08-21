@@ -110,36 +110,40 @@ class AccountController extends Controller
     }
 
     /**
-     * Referensi Control Account — poin 1.7.
-     * Daftar TYPE AKUN dengan posisi normal (Db/Kr) dan pemetaan laporan (NRC / LR).
+     * Referensi Control Account (akun kontrol) — selaras PSAK 1 (Laporan Posisi
+     * Keuangan) & istilah SAK Indonesia. Kolom:
+     * [Kelompok FS, TYPE AKUN, Posisi Normal (Db/Kr), Laporan (NRC=Neraca / LR=Laba Rugi)].
      */
     private function controlAccounts(): array
     {
-        // [Kelompok, TYPE AKUN, Posisi Normal (Db/Kr), Laporan (NRC=Neraca / LR=Laba Rugi)]
         return [
-            ['AKTIVA',     'Kas',                                  'Db', 'NRC'],
-            ['AKTIVA',     'Kas di Bank',                          'Db', 'NRC'],
-            ['AKTIVA',     'Piutang Usaha',                        'Db', 'NRC'],
-            ['AKTIVA',     'Cadangan Kerugian Piutang',            'Kr', 'NRC'],
-            ['AKTIVA',     'Aset Lancar Lainnya',                  'Db', 'NRC'],
-            ['AKTIVA',     'Persediaan',                           'Db', 'NRC'],
-            ['AKTIVA',     'PPN Masukan',                          'Db', 'NRC'],
-            ['AKTIVA',     'Pajak Dibayar Dimuka',                 'Db', 'NRC'],
-            ['AKTIVA',     'Aset Tetap',                           'Db', 'NRC'],
-            ['AKTIVA',     'Aset Lain-lain',                       'Db', 'NRC'],
-            ['AKTIVA',     'Aset Tetap (Kontra/Akum. Penyusutan)', 'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Utang Usaha',                          'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Liabilitas Jangka Pendek Lainnya',     'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Liabilitas Jangka Panjang Lainnya',    'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Kewajiban Pajak',                      'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Liabilitas Lain-lain',                 'Kr', 'NRC'],
-            ['MODAL',      'Equity',                               'Kr', 'NRC'],
-            ['PENDAPATAN', 'Pendapatan Usaha',                     'Kr', 'LR'],
-            ['PENDAPATAN', 'Pendapatan Lain-lain',                 'Kr', 'LR'],
-            ['HPP',        'Harga Pokok Penjualan',                'Db', 'LR'],
-            ['BEBAN',      'Beban Usaha',                          'Db', 'LR'],
-            ['BEBAN',      'Beban Non-operasional',                'Db', 'LR'],
-            ['BEBAN',      'Expences-Perorangan',                  'Db', 'LR'],
+            // Aset Lancar
+            ['Aset Lancar',              'Kas',                                'Db', 'NRC'],
+            ['Aset Lancar',              'Kas di Bank',                        'Db', 'NRC'],
+            ['Aset Lancar',              'Piutang Usaha',                      'Db', 'NRC'],
+            ['Aset Lancar',              'Cadangan Kerugian Penurunan Nilai',  'Kr', 'NRC'],
+            ['Aset Lancar',              'Persediaan',                         'Db', 'NRC'],
+            ['Aset Lancar',              'Uang Muka',                          'Db', 'NRC'],
+            ['Aset Lancar',              'Beban Dibayar Dimuka',               'Db', 'NRC'],
+            ['Aset Lancar',              'Pajak Dibayar Dimuka',               'Db', 'NRC'],
+            // Aset Tidak Lancar
+            ['Aset Tidak Lancar',        'Aset Tetap',                         'Db', 'NRC'],
+            ['Aset Tidak Lancar',        'Akumulasi Penyusutan',               'Kr', 'NRC'],
+            ['Aset Tidak Lancar',        'Aset Takberwujud',                   'Db', 'NRC'],
+            // Liabilitas Jangka Pendek
+            ['Liabilitas Jangka Pendek', 'Utang Usaha',                        'Kr', 'NRC'],
+            ['Liabilitas Jangka Pendek', 'Utang Pajak',                        'Kr', 'NRC'],
+            ['Liabilitas Jangka Pendek', 'Beban Masih Harus Dibayar',          'Kr', 'NRC'],
+            // Liabilitas Jangka Panjang
+            ['Liabilitas Jangka Panjang','Utang Pihak Berelasi',               'Kr', 'NRC'],
+            // Ekuitas
+            ['Ekuitas',                  'Ekuitas',                            'Kr', 'NRC'],
+            // Laba Rugi
+            ['Pendapatan',               'Pendapatan Usaha',                   'Kr', 'LR'],
+            ['Pendapatan Lain-lain',     'Pendapatan Lain-lain',               'Kr', 'LR'],
+            ['Beban Pokok Penjualan',    'Beban Pokok Penjualan',              'Db', 'LR'],
+            ['Beban Usaha',              'Beban Usaha',                        'Db', 'LR'],
+            ['Beban Lain-lain',          'Beban Lain-lain',                    'Db', 'LR'],
         ];
     }
 }
