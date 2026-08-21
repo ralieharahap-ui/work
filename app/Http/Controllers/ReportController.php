@@ -51,16 +51,17 @@ class ReportController extends Controller
         $revenue = $this->sumType($orgId, 'revenue', $dateFrom, $dateTo);
         $expense = $this->sumType($orgId, 'expense', $dateFrom, $dateTo);
 
-        // Pisahkan beban jadi Biaya Langsung/Direct Cost terkait proyek (HPP,
-        // transport, handling, tenaga ahli, material proyek, dst.) dan Biaya
-        // Tetap/OPEX (gaji kantor, sewa, penyusutan, dst.).
-        // Klasifikasi utama pakai Kelompok FS (fs_group='COGS'); untuk akun
-        // legacy tanpa fs_group, hanya kode 4-digit murni 5xxx = direct
-        // (akun legacy `5-5xxx` bersifat OPEX → masuk biaya tetap).
-        // fs_group diawali "COGS" mencakup 'COGS' & 'COGS / Contract Cost' (5299).
+        // Pisahkan beban jadi Beban Pokok Penjualan / Biaya Langsung terkait
+        // proyek (transport, handling, tenaga ahli, material proyek, dst.) dan
+        // Biaya Tetap / Beban Usaha (gaji kantor, sewa, penyusutan, dst.).
+        // Klasifikasi utama pakai Kelompok FS (fs_group PSAK "Beban Pokok
+        // Penjualan"; 'COGS'/'COGS / Contract Cost' didukung untuk kompatibilitas
+        // lama). Untuk akun legacy tanpa fs_group, hanya kode 4-digit murni 5xxx
+        // = direct (akun legacy `5-5xxx` bersifat OPEX → masuk biaya tetap).
         $isDirect = function ($a) {
             if (! blank($a['fs_group'] ?? null)) {
-                return str_starts_with($a['fs_group'], 'COGS');
+                return str_starts_with($a['fs_group'], 'Beban Pokok')
+                    || str_starts_with($a['fs_group'], 'COGS');
             }
             return (bool) preg_match('/^5\d{3}$/', (string) $a['code']);
         };

@@ -47,10 +47,10 @@ Tabel **`accounts`**:
 | code | string | **kode 4-digit** (mis. `1101`) — unik per organisasi |
 | name | string | nama akun |
 | type | string | `asset` \| `liability` \| `equity` \| `revenue` \| `expense` |
-| account_type | string nullable | "Control Account" — sub-tipe (mis. `Kas di Bank`, `Piutang Usaha`, `PPN Masukan`, `Harga Pokok Penjualan`, `Beban Usaha`) |
+| account_type | string nullable | "Control Account" PSAK — sub-tipe (mis. `Kas di Bank`, `Piutang Usaha`, `Cadangan Kerugian Penurunan Nilai`, `Pajak Dibayar Dimuka`, `Akumulasi Penyusutan`, `Aset Takberwujud`, `Utang Usaha`, `Utang Pajak`, `Utang Pihak Berelasi`, `Ekuitas`, `Beban Pokok Penjualan`, `Beban Usaha`, `Beban Lain-lain`) |
 | normal_balance | string(2) nullable | `Db` / `Kr` |
 | report | string(3) nullable | `NRC` (Neraca) / `LR` (Laba-Rugi) |
-| fs_group | string nullable | **Kelompok FS**: Aset Lancar, Aset Kontra, Persediaan, Pajak, Aset Tetap, Aset Tetap Kontra, Aset Takberwujud, Liabilitas Lancar, Liabilitas Pajak, Ekuitas, Pendapatan, Pendapatan Lain, COGS, `COGS / Contract Cost`, OPEX, Beban Lain |
+| fs_group | string nullable | **Kelompok FS (PSAK 1)**: Aset Lancar, Aset Tidak Lancar, Liabilitas Jangka Pendek, Liabilitas Jangka Panjang, Ekuitas, Pendapatan, Pendapatan Lain-lain, Beban Pokok Penjualan, Beban Usaha, Beban Lain-lain |
 | parent_id | uuid FK accounts nullable | hierarki akun |
 | is_active | bool | |
 
@@ -58,15 +58,17 @@ Unique `(organization_id, code)`. CRUD (store/update/destroy) **khusus `super_ad
 
 **Daftar 58 akun bawaan (seeder `ChartOfAccountsSeeder`, idempoten `firstOrCreate` + patch metadata kosong)** — format `[code, name, type, fs_group, account_type, normal_balance(Db/Kr), report(NRC/LR)]`:
 
-Aset (1xxx): `1101 Kas Kecil/Petty Cash` · `1102 Bank Operasional - Mandiri Giro` · `1103 Bank Tabungan Bisnis` · `1201 Piutang Usaha - Trading` · `1202 Piutang Usaha - Biomassa` · `1203 Piutang Usaha - Proyek Lumpsum` · `1209 Cadangan Kerugian Piutang (Aset Kontra, Kr)` · `1301 Sewa Dibayar Dimuka` · `1302 Uang Muka Vendor` · `1401 Persediaan Biomassa` · `1402 Persediaan Material Proyek` · `1403 Persediaan ATK/Barang Habis Pakai` · `1501 PPN Masukan Dapat Dikreditkan (Pajak)` · `1502 PPh 22 Dibayar Dimuka (Pajak)` · `1503 PPh 23 Dibayar Dimuka (Pajak)` · `1601 Peralatan Kantor (Aset Tetap)` · `1609 Akumulasi Penyusutan - Peralatan Kantor (Aset Tetap Kontra, Kr)` · `1701 Lisensi/Aset Takberwujud`.
+Aset Lancar (fs_group "Aset Lancar"): `1101 Kas Kecil/Petty Cash` · `1102 Bank Operasional - Mandiri Giro` · `1103 Bank Tabungan Bisnis` · `1201-1203 Piutang Usaha (Trading/Biomassa/Lumpsum)` · `1209 Cadangan Kerugian Penurunan Nilai Piutang (kontra, Kr)` · `1301 Sewa Dibayar Dimuka` · `1302 Uang Muka Vendor` · `1401-1403 Persediaan` · `1501 PPN Masukan Dapat Dikreditkan` · `1502/1503 PPh 22/23 Dibayar Dimuka`.
+Aset Tidak Lancar (fs_group "Aset Tidak Lancar"): `1601 Peralatan Kantor (Aset Tetap)` · `1609 Akumulasi Penyusutan - Peralatan Kantor (kontra, Kr)` · `1701 Lisensi/Aset Takberwujud`.
 
-Liabilitas (2xxx, Kr): `2101 Utang Usaha - Vendor` · `2102 Utang Subkontraktor` · `2201 PPN Keluaran (Liabilitas Pajak)` · `2202 PPh 21 Terutang` · `2203 PPh 22 Terutang` · `2204 PPh 23 Terutang` · `2205 PPh Final 4(2) Terutang` · `2301 Utang Gaji` · `2302 Utang BPJS` · `2401 Utang Pihak Berelasi - Direksi`.
+Liabilitas Jangka Pendek (fs_group "Liabilitas Jangka Pendek"): `2101 Utang Usaha - Vendor` · `2102 Utang Subkontraktor` · `2201 PPN Keluaran (Utang Pajak)` · `2202-2205 PPh 21/22/23/Final 4(2) Terutang (Utang Pajak)` · `2301 Utang Gaji` · `2302 Utang BPJS`.
+Liabilitas Jangka Panjang (fs_group "Liabilitas Jangka Panjang"): `2401 Utang Pihak Berelasi - Direksi`.
 
 Ekuitas (3xxx, Kr kecuali dividen): `3101 Modal Disetor` · `3201 Saldo Laba` · `3301 Dividen (Db)`.
 
 Pendapatan (4xxx, Kr, LR): `4101 Pendapatan Trading` · `4102 Pendapatan Biomassa` · `4103 Pendapatan Proyek Lumpsum` · `4201 Pendapatan Bunga Bank (Pendapatan Lain)`.
 
-HPP/COGS (5xxx, Db, LR): `5101 HPP Trading` · `5201 HPP/Pembelian Biomassa` · `5202 Transport Biomassa` · `5203 Handling/Bongkar Muat Biomassa` · `5204 QC & Sampling Biomassa` · `5205 Administrasi Biomassa/Direct Project Expense` · `5206 Tenaga Ahli Biomassa` · `5207 Material Proyek Lumpsum` · `5208 Tenaga Ahli Proyek Lumpsum` · `5209 Administrasi Proyek Lumpsum` · `5299 Penalti/Klaim Kontrak (fs_group "COGS / Contract Cost")`.
+Beban Pokok Penjualan (5xxx, Db, LR, fs_group "Beban Pokok Penjualan"): `5101 Beban Pokok Penjualan - Trading` · `5201 Beban Pokok Penjualan - Biomassa` · `5202 Transport Biomassa` · `5203 Handling/Bongkar Muat Biomassa` · `5204 QC & Sampling Biomassa` · `5205 Administrasi Biomassa/Direct Project Expense` · `5206 Tenaga Ahli Biomassa` · `5207 Material Proyek Lumpsum` · `5208 Tenaga Ahli Proyek Lumpsum` · `5209 Administrasi Proyek Lumpsum` · `5299 Penalti/Klaim Kontrak`.
 
 Beban/OPEX (6xxx, Db, LR): `6101 Gaji & THR` · `6102 BPJS & Benefit` · `6103 ATK & Operasional Kantor` · `6104 Sewa & Utilitas` · `6105 Legal & Konsultan` · `6106 Beban Administrasi & Bank` · `6107 Rapat & Perjalanan Dinas Kantor` · `6108 Reimbursement Kantor` · `6110 Membership & Subscription` · `6111 Sertifikasi & Perizinan` · `6112 Beban Penyusutan` · `6201 Beban Pajak/Bunga Bank (Beban Lain)`.
 
@@ -132,7 +134,7 @@ Neraca saldo → dipisah ke kolom LR vs NRC berdasar `report`/`type`. Laba berja
 Aktiva (type asset, saldo debet) vs Kewajiban+Modal (saldo kredit) + laba tahun berjalan.
 
 ### 2.5 Laba/Rugi bertingkat — `books.profit-loss`
-Format multi-step: **Pendapatan − Biaya Langsung (Direct Cost) = Laba Kotor (+margin%)** lalu **− Biaya Tetap (Fixed/OPEX) = Laba Bersih**. Klasifikasi biaya: `fs_group` diawali `"COGS"` → Direct Cost (termasuk `5299`); selain itu → Biaya Tetap. Fallback akun legacy tanpa fs_group: kode 4-digit murni `5xxx` → Direct, `5-xxxx` legacy → Fixed.
+Format multi-step: **Pendapatan − Biaya Langsung (Beban Pokok Penjualan) = Laba Kotor (+margin%)** lalu **− Biaya Tetap (Beban Usaha) = Laba Bersih**. Klasifikasi biaya: `fs_group` diawali `"Beban Pokok"` → Direct Cost (termasuk `5299`; `"COGS"` juga didukung untuk kompatibilitas lama); selain itu → Biaya Tetap. Fallback akun legacy tanpa fs_group: kode 4-digit murni `5xxx` → Direct, `5-xxxx` legacy → Fixed.
 
 ### 2.6 Peredaran Bruto — `books.gross-turnover`
 Peredaran bruto per bulan × **PPh Final UMKM 0,5%** (`rate = 0.005`), dari akun revenue posted.
