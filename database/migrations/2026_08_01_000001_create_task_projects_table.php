@@ -8,6 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Guard idempoten: tabel ini bisa sudah dibuat lebih dulu oleh migrasi
+        // 2026_08_16_000001 (modul akuntansi & manajemen tugas dikembangkan
+        // paralel di branch terpisah sebelum digabung).
+        if (Schema::hasTable('task_projects')) {
+            return;
+        }
+
         Schema::create('task_projects', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('organization_id');

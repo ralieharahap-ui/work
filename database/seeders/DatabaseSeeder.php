@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
             OrganizationSeeder::class,
         ]);
 
-        // Data contoh modul biomassa dilewati pada instalasi khusus
+        // Data contoh modul biomassa & akuntansi dilewati pada instalasi khusus
         // manajemen tugas (APP_MODE=tasks) agar aplikasinya benar-benar bersih.
         if (config('app.mode') !== 'tasks') {
             $this->call([
@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
                 PalmOilSourceSeeder::class,
                 UnloadingPointSeeder::class,
                 JettyPointSeeder::class,
+                ChartOfAccountsSeeder::class,
             ]);
         }
 

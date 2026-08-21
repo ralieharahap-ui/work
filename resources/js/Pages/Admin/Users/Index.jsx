@@ -14,7 +14,7 @@ const hierarchyLabel = {
 export default function AdminUsersIndex({ users, filters, pendingCount, divisions, roles }) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [confirmAction, setConfirmAction] = useState(null); // { user, type: 'activate'|'deactivate'|'delete' }
-    const [editingUser, setEditingUser] = useState(undefined); // undefined = closed, null = new
+    const [editingUser, setEditingUser] = useState(undefined); // undefined = modal tertutup, null = tambah baru
 
     const applyFilter = (status) => {
         router.get(route('admin.users.index'), { ...filters, status }, { preserveState: true, replace: true });
@@ -28,12 +28,19 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
     const runAction = () => {
         if (!confirmAction) return;
         const { user, type } = confirmAction;
+        const opts = { preserveScroll: true, onFinish: () => setConfirmAction(null) };
         if (type === 'delete') {
-            router.delete(route('admin.users.destroy', user.id), { preserveScroll: true, onFinish: () => setConfirmAction(null) });
+            router.delete(route('admin.users.destroy', user.id), opts);
             return;
         }
         const routeName = type === 'activate' ? 'admin.users.activate' : 'admin.users.deactivate';
-        router.patch(route(routeName, user.id), {}, { preserveScroll: true, onFinish: () => setConfirmAction(null) });
+        router.patch(route(routeName, user.id), {}, opts);
+    };
+
+    const CONFIRM_COPY = {
+        activate:   { title: 'Aktifkan akun?', desc: ' akan bisa masuk ke aplikasi.', cta: 'Aktifkan' },
+        deactivate: { title: 'Nonaktifkan akun?', desc: ' tidak akan bisa masuk sampai diaktifkan kembali.', cta: 'Nonaktifkan' },
+        delete:     { title: 'Hapus akun ini?', desc: ' akan dihapus permanen beserta akses loginnya. Tindakan ini tidak bisa dibatalkan.', cta: 'Hapus' },
     };
 
     return (
@@ -45,14 +52,14 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                         <p className="text-slate-300 text-sm font-medium">Persetujuan &amp; Manajemen Akun</p>
                         <p className="text-slate-500 text-xs mt-0.5">{users.total} pengguna terdaftar</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {pendingCount > 0 && (
                             <span className="badge badge-amber">
                                 <ClockIcon className="w-3.5 h-3.5" /> {pendingCount} menunggu persetujuan
                             </span>
                         )}
-                        <button onClick={() => setEditingUser(null)} className="btn-primary !py-1.5 !px-3 text-xs">
-                            <PlusIcon className="w-3.5 h-3.5" /> Tambah Pengguna
+                        <button onClick={() => setEditingUser(null)} className="btn-primary flex items-center gap-2">
+                            <PlusIcon className="w-4 h-4" /> Tambah Pengguna
                         </button>
                     </div>
                 </div>
@@ -141,23 +148,29 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                                                 {u.is_active && (
                                                     <button
                                                         onClick={() => setConfirmAction({ user: u, type: 'deactivate' })}
-                                                        className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                                                        className="p-1.5 rounded-md text-slate-400 hover:text-amber-300 hover:bg-slate-700/50 transition-colors"
                                                         title="Nonaktifkan"
                                                     >
                                                         <XMarkIcon className="w-4 h-4" />
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => setEditingUser({ ...u, role: (u.roles ?? [])[0]?.name })}
+                                                    onClick={() => setEditingUser({
+                                                        id: u.id,
+                                                        name: u.name,
+                                                        email: u.email,
+                                                        division_id: u.division_id,
+                                                        role: (u.roles ?? [])[0]?.name,
+                                                    })}
                                                     className="p-1.5 rounded-md text-slate-400 hover:text-blue-300 hover:bg-slate-700/50 transition-colors"
-                                                    title="Edit"
+                                                    title="Edit pengguna"
                                                 >
                                                     <PencilSquareIcon className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => setConfirmAction({ user: u, type: 'delete' })}
                                                     className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
-                                                    title="Hapus akses"
+                                                    title="Hapus pengguna"
                                                 >
                                                     <TrashIcon className="w-4 h-4" />
                                                 </button>
@@ -195,18 +208,14 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                                     {confirmAction.type === 'activate'
                                         ? <CheckIcon className="w-5 h-5 text-emerald-400" />
                                         : confirmAction.type === 'delete'
-                                            ? <TrashIcon className="w-5 h-5 text-red-400" />
-                                            : <XMarkIcon className="w-5 h-5 text-red-400" />}
+                                        ? <TrashIcon className="w-5 h-5 text-red-400" />
+                                        : <XMarkIcon className="w-5 h-5 text-red-400" />}
                                 </div>
                                 <div>
-                                    <h2 className="text-white font-semibold">
-                                        {confirmAction.type === 'activate' ? 'Aktifkan akun?' : confirmAction.type === 'delete' ? 'Hapus akses pengguna?' : 'Nonaktifkan akun?'}
-                                    </h2>
+                                    <h2 className="text-white font-semibold">{CONFIRM_COPY[confirmAction.type].title}</h2>
                                     <p className="text-slate-400 text-sm mt-1">
                                         <span className="text-slate-200">{confirmAction.user.name}</span>
-                                        {confirmAction.type === 'activate' && ' akan bisa masuk ke aplikasi.'}
-                                        {confirmAction.type === 'deactivate' && ' tidak akan bisa masuk sampai diaktifkan kembali.'}
-                                        {confirmAction.type === 'delete' && ' akan dihapus permanen dan tidak bisa login lagi.'}
+                                        {CONFIRM_COPY[confirmAction.type].desc}
                                     </p>
                                 </div>
                             </div>
@@ -215,7 +224,7 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                                     onClick={runAction}
                                     className={confirmAction.type === 'activate' ? 'btn-primary flex-1' : 'btn-danger flex-1'}
                                 >
-                                    Ya, {confirmAction.type === 'activate' ? 'Aktifkan' : confirmAction.type === 'delete' ? 'Hapus' : 'Nonaktifkan'}
+                                    Ya, {CONFIRM_COPY[confirmAction.type].cta}
                                 </button>
                                 <button onClick={() => setConfirmAction(null)} className="btn-secondary flex-1">Batal</button>
                             </div>

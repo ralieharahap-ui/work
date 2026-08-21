@@ -12,7 +12,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Segoe UI"', 'ui-sans-serif', 'system-ui', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', '"Segoe UI"', 'ui-sans-serif', 'system-ui', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 // Diselaraskan dengan logo PT Geosys Energi Prima (teal-biru pada ikon)
@@ -78,6 +78,8 @@ export default {
                 'notion-deep': '0 1px 3px 0 rgb(0 0 0 / 0.01), 0 3px 7px 0 rgb(0 0 0 / 0.02), 0 7px 15px 0 rgb(0 0 0 / 0.02), 0 14px 28px 0 rgb(0 0 0 / 0.04), 0 23px 52px 0 rgb(0 0 0 / 0.05)',
                 card: '0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.2)',
                 'card-hover': '0 8px 24px -6px rgb(0 0 0 / 0.5)',
+                notion: '0 4px 18px 0 rgb(0 0 0 / 0.04), 0 2.025px 7.85px 0 rgb(0 0 0 / 0.027), 0 0.8px 2.93px 0 rgb(0 0 0 / 0.02), 0 0.175px 1.04px 0 rgb(0 0 0 / 0.01)',
+                'notion-deep': '0 1px 3px 0 rgb(0 0 0 / 0.01), 0 3px 7px 0 rgb(0 0 0 / 0.02), 0 7px 15px 0 rgb(0 0 0 / 0.02), 0 14px 28px 0 rgb(0 0 0 / 0.04), 0 23px 52px 0 rgb(0 0 0 / 0.05)',
             },
             keyframes: {
                 'fade-in': {

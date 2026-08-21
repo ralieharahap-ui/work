@@ -155,3 +155,127 @@ export function TaskBoardIcon({ className = 'w-6 h-6' }) {
         </svg>
     );
 }
+
+// 📚 Daftar Akun (COA)
+export function AccountsColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="7" width="26" height="34" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <path d="M13 15h16M13 22h16M13 29h11" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+            <rect x="30" y="18" width="10" height="23" rx="2" fill="#22C55E" />
+            <path d="M35 23v13M31.5 29.5h7" stroke="#0F3D22" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+// 📝 Jurnal
+export function JournalColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="9" y="6" width="30" height="36" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <rect x="9" y="6" width="7" height="36" rx="2" fill="#F97316" />
+            <path d="M21 15h13M21 22h13M21 29h9" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+            <path d="M30 34l3-3 4 4-3 3h-4v-4z" fill="#FBBF24" />
+        </svg>
+    );
+}
+
+// 📒 Buku Besar
+export function LedgerColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 8c0-1.7 1.3-3 3-3h24a3 3 0 013 3v32a3 3 0 01-3 3H13a3 3 0 01-3-3V8z" fill="#0EA5E9" />
+            <rect x="16" y="9" width="21" height="30" rx="2" fill="#1E293B" />
+            <path d="M20 16h13M20 23h13M20 30h8" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+// 🏢 Aset Tetap
+export function AssetColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="12" width="18" height="30" rx="2" fill="#38BDF8" />
+            <rect x="26" y="20" width="14" height="22" rx="2" fill="#0EA5E9" />
+            <path d="M12 18h4M18 18h4M12 24h4M18 24h4M12 30h4M18 30h4M30 26h6M30 32h6" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+// 📊 Laporan Keuangan
+export function ReportColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="6" width="32" height="36" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <rect x="14" y="26" width="5" height="10" rx="1" fill="#38BDF8" />
+            <rect x="21.5" y="20" width="5" height="16" rx="1" fill="#22C55E" />
+            <rect x="29" y="14" width="5" height="22" rx="1" fill="#F97316" />
+            <path d="M14 12h10" stroke="#64748B" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+// 🏭 Master Vendor
+export function VendorColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 42V22l10 6V22l10 6V12l16 10v20H6z" fill="#0EA5E9" />
+            <rect x="10" y="32" width="5" height="10" fill="#1E293B" />
+            <rect x="20" y="32" width="5" height="10" fill="#1E293B" />
+            <rect x="30" y="30" width="8" height="12" fill="#1E293B" />
+            <circle cx="34" cy="10" r="3" fill="#22C55E" />
+        </svg>
+    );
+}
+
+// 🗂️ Dokumentasi (arsip terbit)
+export function ArchiveColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="7" y="9" width="34" height="9" rx="2" fill="#0EA5E9" />
+            <rect x="9" y="18" width="30" height="22" rx="2" fill="#1E293B" stroke="#475569" strokeWidth="1.5" />
+            <rect x="18" y="24" width="12" height="4" rx="2" fill="#38BDF8" />
+            <path d="M14 33h20" stroke="#64748B" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+// 📄 Dokumen Template
+export function DocumentColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 5h16l7 7v31a2 2 0 01-2 2H13a2 2 0 01-2-2V7a2 2 0 012-2z" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <path d="M29 5v7h7" fill="#0EA5E9" opacity=".9" />
+            <path d="M16 20h16M16 26h16M16 32h11" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="33" cy="36" r="7" fill="#22C55E" />
+            <path d="M30 36l2.2 2.2L37 33.5" stroke="#0F3D22" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+// 🧾 Pajak / Peredaran Bruto
+export function TaxColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 6h26v33l-4.3-3-4.3 3-4.4-3-4.3 3-4.4-3V6z" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <path d="M17 14h14M17 21h14" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="20" cy="30" r="2.4" fill="#A78BFA" />
+            <circle cx="28" cy="30" r="2.4" fill="#A78BFA" />
+            <path d="M30 27l-12 8" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+// ✅ Manajemen Tugas (papan kanban + centang)
+export function TaskBoardColorIcon({ className = 'w-6 h-6' }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="8" width="36" height="32" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1.6" />
+            <rect x="10" y="13" width="8" height="16" rx="1.5" fill="#38BDF8" opacity=".85" />
+            <rect x="20" y="13" width="8" height="11" rx="1.5" fill="#A78BFA" opacity=".85" />
+            <rect x="30" y="13" width="8" height="20" rx="1.5" fill="#F59E0B" opacity=".8" />
+            <circle cx="34" cy="36" r="7" fill="#22C55E" />
+            <path d="M31 36l2.2 2.2L38 33.5" stroke="#0F3D22" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
