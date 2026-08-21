@@ -160,6 +160,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/create',        [DocumentController::class, 'create'])->middleware('permission:letters.create')->name('documents.create');
         Route::post('/',             [DocumentController::class, 'store'])->middleware('permission:letters.create')->name('documents.store');
         Route::get('/{document}',    [DocumentController::class, 'show'])->name('documents.show');
+        // Revisi/edit dokumen — khusus Super Admin & Reviewer.
+        Route::middleware('role:super_admin|reviewer')->group(function () {
+            Route::get('/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
+            Route::put('/{document}',      [DocumentController::class, 'update'])->name('documents.update');
+        });
         // Ubah status (Signed/Released/Cancelled) — khusus Super Admin (Direktur).
         Route::patch('/{document}/status', [DocumentController::class, 'setStatus'])->middleware('role:super_admin')->name('documents.status');
         Route::delete('/{document}', [DocumentController::class, 'destroy'])->middleware('permission:letters.delete')->name('documents.destroy');

@@ -155,7 +155,7 @@ function Footer({ company, code }) {
     );
 }
 
-export default function DocumentsShow({ document, config, company, statuses, can_release }) {
+export default function DocumentsShow({ document, config, company, statuses, can_release, can_edit }) {
     const m = document.meta || {};
     const title = TITLES[document.type] || (config.label || '').toUpperCase();
     const total = num(m.amounts?.total);
@@ -181,6 +181,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     <span className={`badge ${STATUS_BADGE[status] || 'badge-slate'}`}>{statuses?.[status] || status}</span>
                     {document.released_by && <span className="text-xs text-slate-400">Dirilis oleh {document.released_by}</span>}
                     <div className="flex-1" />
+                    {can_edit && <Link href={route('documents.edit', document.id)} className="btn-secondary">✏️ Edit / Revisi</Link>}
                     {can_release && status !== 'signed' && <button onClick={() => setStatus('signed')} className="btn-secondary">✍️ Tandatangani</button>}
                     {can_release && status !== 'released' && <button onClick={() => setStatus('released')} className="btn-primary">✅ Rilis</button>}
                     {can_release && status !== 'cancelled' && <button onClick={() => setStatus('cancelled')} className="btn-danger">Batalkan</button>}

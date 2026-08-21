@@ -148,14 +148,15 @@ function initMeta(type) {
     return base;
 }
 
-export default function DocumentsCreate({ type, config, company, prefill, next_number }) {
-    const { data, setData, post, processing, transform } = useForm({
+export default function DocumentsCreate({ type, config, company, prefill, next_number, document = null }) {
+    const isEdit = !!document;
+    const { data, setData, post, put, processing, transform } = useForm({
         type,
-        doc_date: new Date().toISOString().slice(0, 10),
-        meta: initMeta(type),
-        ref_type: null,
-        ref_id: null,
-        notes: '',
+        doc_date: document?.doc_date ?? new Date().toISOString().slice(0, 10),
+        meta: document?.meta ?? initMeta(type),
+        ref_type: document?.ref_type ?? null,
+        ref_id: document?.ref_id ?? null,
+        notes: document?.notes ?? '',
     });
 
     const meta = data.meta;
@@ -290,13 +291,14 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
             ...d,
             meta: { ...d.meta, amounts: { ...d.meta.amounts, subtotal, ppn, total } },
         }));
-        post(route('documents.store'));
+        if (isEdit) put(route('documents.update', document.id));
+        else post(route('documents.store'));
     };
 
     return (
         <>
-            <Head title={'Buat ' + config.label} />
-            <AppLayout title={'Buat ' + config.label}>
+            <Head title={(isEdit ? 'Revisi ' : 'Buat ') + config.label} />
+            <AppLayout title={(isEdit ? 'Revisi ' : 'Buat ') + config.label}>
                 <div className="mb-4 print:hidden">
                     <Link href={route('documents.index')} className="text-slate-400 hover:text-white text-sm">← Kembali ke Daftar Dokumen</Link>
                 </div>
@@ -800,7 +802,7 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
 
                     <div className="flex justify-end gap-2 print:hidden">
                         <Link href={route('documents.index')} className="btn-secondary">Batal</Link>
-                        <button type="submit" className="btn-primary" disabled={processing}>Simpan & Buat Dokumen</button>
+                        <button type="submit" className="btn-primary" disabled={processing}>{isEdit ? 'Simpan Revisi' : 'Simpan & Buat Dokumen'}</button>
                     </div>
                 </form>
             </AppLayout>

@@ -138,13 +138,29 @@ class DocumentController extends Controller
         abort_unless(isset($types[$type]) && $types[$type]['active'], 404);
 
         $config = $types[$type];
+
+        return Inertia::render('Documents/Create', [
+            'type'         => $type,
+            'config'       => $config,
+            'company'      => $this->company(),
+            'prefill'      => $this->buildPrefill($orgId, $type, $config),
+            'next_number'  => $this->previewNumber($orgId, $config['prefix']),
+        ]);
+    }
+
+    /**
+     * Data pendukung form (dropdown skenario/jurnal/vendor/akun dsb.)
+     * dipakai bersama oleh create() & edit().
+     */
+    private function buildPrefill(string $orgId, string $type, array $config): array
+    {
         $prefill = [];
 
         // Sumber data campuran: tarik data dari modul terkait bila tersedia.
-        if ($config['source'] === 'scenario') {
+        if (($config['source'] ?? null) === 'scenario') {
             $prefill['scenarios'] = CalculationScenario::where('organization_id', $orgId)
                 ->latest()->get(['id', 'name', 'volume', 'price_customer', 'total_revenue', 'is_wapu']);
-        } elseif ($config['source'] === 'journal') {
+        } elseif (($config['source'] ?? null) === 'journal') {
             $prefill['journals'] = JournalEntry::where('organization_id', $orgId)
                 ->where('is_posted', true)
                 ->with('lines.account:id,code,name')
@@ -160,12 +176,12 @@ class DocumentController extends Controller
                         'credit'  => (float) $l->credit,
                     ]),
                 ]);
-        } elseif ($config['source'] === 'shipment') {
+        } elseif (($config['source'] ?? null) === 'shipment') {
             $prefill['sources']   = PalmOilSource::where('organization_id', $orgId)
                 ->get(['id', 'name', 'city', 'province']);
             $prefill['customers'] = UnloadingPoint::where('organization_id', $orgId)
                 ->get(['id', 'name', 'customer_name', 'city', 'province']);
-        } elseif ($config['source'] === 'vendor') {
+        } elseif (($config['source'] ?? null) === 'vendor') {
             $prefill['vendors'] = \App\Models\Vendor::where('organization_id', $orgId)
                 ->where('is_active', true)
                 ->get(['id', 'code', 'name', 'address']);
@@ -177,13 +193,73 @@ class DocumentController extends Controller
                 ->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
         }
 
+        return $prefill;
+    }
+
+    /**
+     * Form revisi dokumen (reuse halaman Create dengan data terisi).
+     * Akses dibatasi Super Admin & Reviewer pada route.
+     */
+    public function edit(Document $document): Response
+    {
+        abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+
+        $orgId  = $document->organization_id;
+        $types  = $this->types();
+        $type   = $document->type;
+        $config = $types[$type] ?? ['label' => $type, 'active' => true, 'source' => null, 'prefix' => ''];
+
         return Inertia::render('Documents/Create', [
-            'type'         => $type,
-            'config'       => $config,
-            'company'      => $this->company(),
-            'prefill'      => $prefill,
-            'next_number'  => $this->previewNumber($orgId, $config['prefix']),
+            'type'        => $type,
+            'config'      => $config,
+            'company'     => $this->company(),
+            'prefill'     => $this->buildPrefill($orgId, $type, $config),
+            'next_number' => $document->number,
+            'document'    => [
+                'id'       => $document->id,
+                'number'   => $document->number,
+                'doc_date' => $document->doc_date->toDateString(),
+                'meta'     => $document->meta,
+                'notes'    => $document->notes,
+                'ref_type' => $document->ref_type,
+                'ref_id'   => $document->ref_id,
+            ],
         ]);
+    }
+
+    /**
+     * Simpan revisi dokumen. Nomor, tipe, status & pembuat TIDAK berubah.
+     * Penanda jurnal otomatis (posted_journal_id) dipertahankan agar tidak dobel.
+     */
+    public function update(Request $request, Document $document)
+    {
+        abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+
+        $validated = $request->validate([
+            'doc_date' => 'required|date',
+            'meta'     => 'required|array',
+            'notes'    => 'nullable|string',
+            'ref_type' => 'nullable|string',
+            'ref_id'   => 'nullable|string',
+        ]);
+
+        $meta = $validated['meta'];
+        if (! empty($document->meta['extra']['posted_journal_id'])) {
+            $meta['extra'] = array_merge($meta['extra'] ?? [], [
+                'posted_journal_id' => $document->meta['extra']['posted_journal_id'],
+            ]);
+        }
+
+        $document->update([
+            'doc_date' => $validated['doc_date'],
+            'meta'     => $meta,
+            'notes'    => $validated['notes'] ?? null,
+            'ref_type' => $validated['ref_type'] ?? $document->ref_type,
+            'ref_id'   => $validated['ref_id'] ?? $document->ref_id,
+        ]);
+
+        return redirect()->route('documents.show', $document->id)
+            ->with('success', 'Dokumen ' . $document->number . ' berhasil direvisi');
     }
 
     public function store(Request $request)
@@ -328,6 +404,7 @@ class DocumentController extends Controller
             'company'     => $this->company(),
             'statuses'    => $this->statusOptions(),
             'can_release' => auth()->user()->hasRole('super_admin'),
+            'can_edit'    => auth()->user()->hasRole(['super_admin', 'reviewer']),
         ]);
     }
 
