@@ -1,5 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { QRCodeSVG } from 'qrcode.react';
 import AppLayout from '@/Layouts/AppLayout';
+
+// Jenis dokumen yang dahulu memuat kolom paraf "Mengetahui/Menyetujui Direksi".
+// Kini pengesahan itu dipindah ke footer (di sebelah kode dokumen).
+const APPROVAL_TYPES = ['kwitansi', 'voucher_jurnal', 'perjalanan_dinas', 'reimbursement', 'do'];
 
 const num = (v) => parseFloat(v) || 0;
 const fmt = (n) => new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0));
@@ -125,16 +130,11 @@ function PersonnelSign({ company, meta, director, type }) {
             </div>
         );
     }
+    // Kolom paraf "Mengetahui/Menyetujui Direksi" dipindah ke footer;
+    // di sini tersisa satu kolom tanda tangan personil ybs.
     return (
-        <div className="flex justify-between mt-10 text-sm text-slate-700">
-            <div className="w-56 text-center">
-                <p>Mengetahui/Menyetujui,</p>
-                <p className="font-semibold">Direksi</p>
-                <p className="text-slate-500 text-xs">PT Geosys Energi Prima</p>
-                <div style={{ height: '64px' }} />
-                <p className="text-slate-500">( paraf )</p>
-            </div>
-            <div className="w-56 text-center">
+        <div className="flex justify-end mt-10 text-sm text-slate-700">
+            <div className="w-64 text-center">
                 <p>Hormat Kami,</p>
                 <div style={{ height: '84px' }} />
                 <p className="font-semibold underline uppercase">{meta.extra?.signer_name || '(_____________________)'}</p>
@@ -144,23 +144,49 @@ function PersonnelSign({ company, meta, director, type }) {
     );
 }
 
-/** Footer dokumen (poin 3.5) — website, halaman, kode unik. */
-function Footer({ company, code }) {
+/** Footer dokumen (poin 3.5) — website, halaman, kode unik.
+ *  approval: nota "Mengetahui/Menyetujui Direksi" (dipindah dari area TTD).
+ *  lock: {value,label} — QR pengunci dokumen yang sudah ditandatangani/dirilis. */
+function Footer({ company, code, approval, lock }) {
     return (
-        <div className="doc-footer mt-10 pt-3 border-t border-slate-300 flex flex-wrap justify-between gap-2 text-[10px] text-slate-500">
+        <div className="doc-footer mt-10 pt-3 border-t border-slate-300 flex flex-wrap items-end justify-between gap-3 text-[10px] text-slate-500">
             <span>Website: {company.website}</span>
             <span className="doc-page">Halaman 1</span>
-            <span>Kode Dokumen: {code}</span>
+            <div className="flex items-end gap-3">
+                {lock && (
+                    <div className="flex items-center gap-1.5">
+                        <QRCodeSVG value={lock.value} size={46} level="M" marginSize={0} bgColor="#ffffff" fgColor="#0f172a" />
+                        <span className="text-emerald-700 font-semibold uppercase tracking-wide">🔒 {lock.label}</span>
+                    </div>
+                )}
+                <div className="text-right leading-relaxed">
+                    <div>Kode Dokumen: {code}</div>
+                    {approval && <div>{approval}</div>}
+                </div>
+            </div>
         </div>
     );
 }
 
-export default function DocumentsShow({ document, config, company, statuses, can_release, can_edit }) {
+export default function DocumentsShow({ document, config, company, statuses, can_release, can_edit, is_locked }) {
     const m = document.meta || {};
     const title = TITLES[document.type] || (config.label || '').toUpperCase();
     const total = num(m.amounts?.total);
     const code = uniqueCode(document.id);
     const status = document.status || 'on_review';
+
+    // Pengesahan Direksi dipindah ke footer (di sebelah kode dokumen).
+    const approval = APPROVAL_TYPES.includes(document.type)
+        ? 'Mengetahui/Menyetujui: Direksi PT Geosys Energi Prima'
+        : null;
+
+    // Dokumen yang sudah ditandatangani/dirilis dikunci & diberi QR verifikasi.
+    const locked = ['signed', 'released'].includes(status);
+    const lock = locked ? {
+        value: `PT GEOSYS ENERGI PRIMA\nNo: ${document.number}\nKode: ${code}\nStatus: ${statuses?.[status] || status}`
+            + (document.released_at ? `\nTgl: ${document.released_at}` : ''),
+        label: 'Terkunci',
+    } : null;
 
     const setStatus = (s) => router.patch(route('documents.status', document.id), { status: s }, { preserveScroll: true });
 
@@ -179,6 +205,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                 <div className="doc-toolbar flex flex-wrap items-center gap-2 mb-4">
                     <Link href={route('documents.index')} className="btn-secondary">← Kembali</Link>
                     <span className={`badge ${STATUS_BADGE[status] || 'badge-slate'}`}>{statuses?.[status] || status}</span>
+                    {is_locked && <span className="badge badge-slate" title="Terkunci — hanya Super Admin yang dapat merevisi">🔒 Terkunci</span>}
                     {document.released_by && <span className="text-xs text-slate-400">Dirilis oleh {document.released_by}</span>}
                     <div className="flex-1" />
                     {can_edit && <Link href={route('documents.edit', document.id)} className="btn-secondary">✏️ Edit / Revisi</Link>}
@@ -582,7 +609,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     )}
 
                     {/* FOOTER */}
-                    <Footer company={company} code={code} />
+                    <Footer company={company} code={code} approval={approval} lock={lock} />
                 </div>
             </AppLayout>
         </>

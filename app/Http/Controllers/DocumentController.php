@@ -200,9 +200,21 @@ class DocumentController extends Controller
      * Form revisi dokumen (reuse halaman Create dengan data terisi).
      * Akses dibatasi Super Admin & Reviewer pada route.
      */
+    /** Dokumen terkunci bila sudah ditandatangani atau dirilis. */
+    private function isLocked(Document $document): bool
+    {
+        return in_array($document->status, ['signed', 'released'], true);
+    }
+
     public function edit(Document $document): Response
     {
         abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+        abort_if(
+            $this->isLocked($document) && ! auth()->user()->hasRole('super_admin'),
+            403,
+            'Dokumen sudah ' . ($this->statusOptions()[$document->status] ?? $document->status)
+                . ' dan terkunci. Hanya Super Admin yang dapat merevisi.'
+        );
 
         $orgId  = $document->organization_id;
         $types  = $this->types();
@@ -234,6 +246,11 @@ class DocumentController extends Controller
     public function update(Request $request, Document $document)
     {
         abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+        abort_if(
+            $this->isLocked($document) && ! auth()->user()->hasRole('super_admin'),
+            403,
+            'Dokumen terkunci — hanya Super Admin yang dapat merevisi dokumen yang sudah ditandatangani/dirilis.'
+        );
 
         $validated = $request->validate([
             'doc_date' => 'required|date',
@@ -404,7 +421,10 @@ class DocumentController extends Controller
             'company'     => $this->company(),
             'statuses'    => $this->statusOptions(),
             'can_release' => auth()->user()->hasRole('super_admin'),
-            'can_edit'    => auth()->user()->hasRole(['super_admin', 'reviewer']),
+            // Dokumen terkunci (signed/released) hanya boleh direvisi Super Admin.
+            'can_edit'    => auth()->user()->hasRole('super_admin')
+                             || (auth()->user()->hasRole('reviewer') && ! $this->isLocked($document)),
+            'is_locked'   => $this->isLocked($document),
         ]);
     }
 
