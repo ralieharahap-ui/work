@@ -78,8 +78,40 @@ function DirekturSign({ company, meta }) {
 }
 
 /** Tanda tangan personil ybs. + paraf Direksi (mengetahui/menyetujui).
- *  Bila dokumen dirilis oleh Direksi sendiri, Direksi menjadi penandatangan. */
-function PersonnelSign({ company, meta, director }) {
+ *  Bila dokumen dirilis oleh Direksi sendiri, Direksi menjadi penandatangan.
+ *  Khusus Tanda Terima: sisi kiri menjadi "Diterima oleh" berkolom kosong
+ *  (Instansi, tanda tangan, Nama, Jabatan) untuk diisi manual oleh penerima. */
+function PersonnelSign({ company, meta, director, type }) {
+    if (type === 'tanda_terima') {
+        const BlankLine = ({ w = 'w-36' }) => (
+            <span className={`inline-block border-b border-dotted border-slate-500 ${w} align-bottom`}>&nbsp;</span>
+        );
+        return (
+            <div className="flex justify-between mt-10 text-sm text-slate-700">
+                {/* Diterima oleh — seluruh kolom diisi manual oleh penerima */}
+                <div className="w-64">
+                    <p className="text-center mb-3">Diterima oleh,</p>
+                    <div className="space-y-3">
+                        <p>Instansi&nbsp;: <BlankLine w="w-36" /></p>
+                        <div>
+                            <p>Tanda tangan&nbsp;:</p>
+                            <div style={{ height: '60px' }} />
+                        </div>
+                        <p>Nama&nbsp;: <BlankLine w="w-40" /></p>
+                        <p>Jabatan&nbsp;: <BlankLine w="w-36" /></p>
+                    </div>
+                </div>
+                {/* Hormat Kami — pihak yang menyerahkan (PT GEP) */}
+                <div className="w-56 text-center">
+                    <p>Hormat Kami,</p>
+                    <p className="font-semibold">{company.name}</p>
+                    <div style={{ height: '84px' }} />
+                    <p className="font-semibold underline uppercase">{director || meta.extra?.signer_name || '(_____________________)'}</p>
+                    <p className="text-slate-600">{director ? 'Direksi' : (meta.extra?.signer_title || 'Personil')}</p>
+                </div>
+            </div>
+        );
+    }
     if (director) {
         return (
             <div className="flex justify-end mt-10 text-sm text-slate-700">
@@ -533,7 +565,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                             </div>
                           </div>
                         : ['kwitansi', 'voucher_jurnal', 'tanda_terima', 'perjalanan_dinas', 'reimbursement', 'do'].includes(document.type)
-                        ? <PersonnelSign company={company} meta={m} director={document.released_by} />
+                        ? <PersonnelSign company={company} meta={m} director={document.released_by} type={document.type} />
                         : <DirekturSign company={company} meta={m} />}
 
                     {/* Tembusan (khusus surat resmi) */}
