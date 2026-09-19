@@ -18,12 +18,15 @@ class ChartOfAccountsSeeder extends Seeder
             ['1-1200', 'Piutang Usaha',                     'asset',     'Piutang Usaha',              'Db', 'NRC'],
             ['1-1300', 'Persediaan Biomassa',               'asset',     'Persediaan',                 'Db', 'NRC'],
             ['1-1400', 'PPN Dipungut Wapu (Clearing)',      'asset',     'Aset Lancar Lainnya',        'Db', 'NRC'],
+            ['1-1450', 'PPN Masukan',                       'asset',     'PPN Masukan',                'Db', 'NRC'],
             ['1-1500', 'Uang Muka & Biaya Dibayar Di Muka', 'asset',     'Aset Lancar Lainnya',        'Db', 'NRC'],
             ['1-2000', 'Aset Tetap',                        'asset',     'Aset Tetap',                 'Db', 'NRC'],
             ['2-2100', 'Utang PPN Keluaran',                'liability', 'Kewajiban Pajak',            'Kr', 'NRC'],
             ['2-2200', 'Utang Usaha',                       'liability', 'Utang Usaha',                'Kr', 'NRC'],
             ['2-2300', 'Utang Pajak Lainnya',               'liability', 'Kewajiban Pajak',            'Kr', 'NRC'],
             ['2-2400', 'Utang Pihak Berelasi',              'liability', 'Utang Usaha',                'Kr', 'NRC'],
+            ['2-2500', 'Utang Bank',                        'liability', 'Utang Pendanaan',            'Kr', 'NRC'],
+            ['2-2600', 'Utang Investor',                    'liability', 'Utang Pendanaan',            'Kr', 'NRC'],
             ['3-3000', 'Modal Disetor',                     'equity',    'Equity',                     'Kr', 'NRC'],
             ['3-3100', 'Laba Ditahan',                      'equity',    'Equity',                     'Kr', 'NRC'],
             ['4-4000', 'Pendapatan Penjualan Biomassa',     'revenue',   'Pendapatan Usaha',           'Kr', 'LR'],
@@ -32,6 +35,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['5-5100', 'Beban Operasional',                 'expense',   'Beban Usaha',                'Db', 'LR'],
             ['5-5200', 'Beban Administrasi & Umum',         'expense',   'Beban Usaha',                'Db', 'LR'],
             ['5-5300', 'Beban Pajak',                       'expense',   'Beban Usaha',                'Db', 'LR'],
+            ['5-5400', 'Beban Bunga Pinjaman',              'expense',   'Beban Usaha',                'Db', 'LR'],
         ];
 
         foreach ($accounts as [$code, $name, $type, $accountType, $normal, $report]) {

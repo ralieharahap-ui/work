@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState } from 'react';
-import { CheckIcon, XMarkIcon, ClockIcon, PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, ClockIcon, PencilSquareIcon, TrashIcon, PlusIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import UserFormModal from '@/Components/UserFormModal';
+import UserPermissionModal from '@/Components/UserPermissionModal';
 
 const tgl = (d) => d ? new Date(d).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -11,10 +12,11 @@ const hierarchyLabel = {
     stakeholder: 'Stakeholder', administrator: 'Administrator',
 };
 
-export default function AdminUsersIndex({ users, filters, pendingCount, divisions, roles }) {
+export default function AdminUsersIndex({ users, filters, pendingCount, divisions, roles, granularGroups }) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [confirmAction, setConfirmAction] = useState(null); // { user, type: 'activate'|'deactivate'|'delete' }
     const [editingUser, setEditingUser] = useState(undefined); // undefined = modal tertutup, null = tambah baru
+    const [permUser, setPermUser] = useState(null); // user yang sedang diatur hak akses granularnya
 
     const applyFilter = (status) => {
         router.get(route('admin.users.index'), { ...filters, status }, { preserveState: true, replace: true });
@@ -168,6 +170,13 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                                                     <PencilSquareIcon className="w-4 h-4" />
                                                 </button>
                                                 <button
+                                                    onClick={() => setPermUser(u)}
+                                                    className="p-1.5 rounded-md text-slate-400 hover:text-emerald-300 hover:bg-slate-700/50 transition-colors"
+                                                    title="Hak akses detail"
+                                                >
+                                                    <ShieldCheckIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => setConfirmAction({ user: u, type: 'delete' })}
                                                     className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
                                                     title="Hapus pengguna"
@@ -239,6 +248,14 @@ export default function AdminUsersIndex({ users, filters, pendingCount, division
                         divisions={divisions}
                         roles={roles}
                         theme="dark"
+                    />
+                )}
+
+                {permUser && (
+                    <UserPermissionModal
+                        onClose={() => setPermUser(null)}
+                        user={permUser}
+                        groups={granularGroups}
                     />
                 )}
             </AppLayout>

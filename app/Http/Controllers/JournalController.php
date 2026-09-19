@@ -343,7 +343,13 @@ class JournalController extends Controller
             ->get(['code', 'customer_name', 'name'])
             ->map(fn ($c) => ['code' => $c->code, 'label' => $c->code . ' — ' . ($c->customer_name ?: $c->name) . ' (Customer)']);
 
-        return $vendors->concat($customers)->values()->all();
+        $creditors = \App\Models\FundingCreditor::where('organization_id', $orgId)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get(['code', 'name', 'category'])
+            ->map(fn ($c) => ['code' => $c->code, 'label' => $c->code . ' — ' . $c->name . ' (Kreditur ' . ucfirst($c->category) . ')']);
+
+        return $vendors->concat($customers)->concat($creditors)->values()->all();
     }
 
     private function generateEntryNo(string $orgId): string

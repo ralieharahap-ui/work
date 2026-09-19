@@ -13,8 +13,11 @@ use App\Http\Controllers\LedgerController;
 use App\Http\Controllers\FixedAssetController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentCommentController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\FundingCreditorController;
+use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskProjectController;
@@ -79,7 +82,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Catatan: aksi add/edit/delete dibatasi khusus Super Admin (role:super_admin).
     Route::middleware('permission:books.view')->prefix('books')->group(function () {
         // Daftar Akun (COA) & Control Account
-        Route::get('/accounts', [AccountController::class, 'index'])->name('books.accounts.index');
+        Route::get('/accounts', [AccountController::class, 'index'])->middleware('permission:books.accounts.view')->name('books.accounts.index');
         Route::middleware('role:super_admin')->group(function () {
             Route::post('/accounts',            [AccountController::class, 'store'])->name('books.accounts.store');
             Route::put('/accounts/{account}',   [AccountController::class, 'update'])->name('books.accounts.update');
@@ -87,7 +90,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
 
         // Jurnal Umum (Form Jurnal + Laporan Jurnal) — alur approval bertingkat
-        Route::get('/journal',  [JournalController::class, 'index'])->name('books.journal.index');
+        Route::get('/journal',  [JournalController::class, 'index'])->middleware('permission:books.journal.view')->name('books.journal.index');
         // Buat/ubah/ajukan/hapus: pembuat (drafter/Accounting Staff) & Super Admin
         Route::middleware('permission:books.create')->group(function () {
             Route::post('/journal',                  [JournalController::class, 'store'])->name('books.journal.store');
@@ -103,8 +106,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
 
         // Master Vendor (kode bantu) + subledger utang
-        Route::get('/vendors', [VendorController::class, 'index'])->name('books.vendors.index');
-        Route::get('/vendors/{vendor}', [VendorController::class, 'show'])->name('books.vendors.show');
+        Route::get('/vendors', [VendorController::class, 'index'])->middleware('permission:books.vendors.view')->name('books.vendors.index');
+        Route::get('/vendors/{vendor}', [VendorController::class, 'show'])->middleware('permission:books.vendors.view')->name('books.vendors.show');
         Route::middleware('role:super_admin')->group(function () {
             Route::post('/vendors',           [VendorController::class, 'store'])->name('books.vendors.store');
             Route::put('/vendors/{vendor}',   [VendorController::class, 'update'])->name('books.vendors.update');
@@ -112,15 +115,27 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
 
         // Master Customer (kode bantu) + subledger piutang
-        Route::get('/customers', [CustomerController::class, 'index'])->name('books.customers.index');
-        Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('books.customers.show');
+        Route::get('/customers', [CustomerController::class, 'index'])->middleware('permission:books.customers.view')->name('books.customers.index');
+        Route::get('/customers/{customer}', [CustomerController::class, 'show'])->middleware('permission:books.customers.view')->name('books.customers.show');
         Route::put('/customers/{customer}', [CustomerController::class, 'update'])->middleware('role:super_admin')->name('books.customers.update');
 
+        // Master Kreditur Pendanaan (Investor/Bank, kode bantu) + subledger kewajiban pendanaan
+        Route::get('/creditors', [FundingCreditorController::class, 'index'])->middleware('permission:books.creditors.view')->name('books.creditors.index');
+        Route::get('/creditors/{creditor}', [FundingCreditorController::class, 'show'])->middleware('permission:books.creditors.view')->name('books.creditors.show');
+        Route::middleware('role:super_admin')->group(function () {
+            Route::post('/creditors',            [FundingCreditorController::class, 'store'])->name('books.creditors.store');
+            Route::put('/creditors/{creditor}',  [FundingCreditorController::class, 'update'])->name('books.creditors.update');
+            Route::delete('/creditors/{creditor}',[FundingCreditorController::class, 'destroy'])->name('books.creditors.destroy');
+        });
+
+        // Kontrol Saldo PPN Masukan/Keluaran & WAPU
+        Route::get('/tax-control', [TaxController::class, 'index'])->middleware('permission:books.tax.view')->name('books.tax-control');
+
         // Buku Besar (read-only; edit dilakukan di Jurnal Umum)
-        Route::get('/ledger', [LedgerController::class, 'index'])->name('books.ledger.index');
+        Route::get('/ledger', [LedgerController::class, 'index'])->middleware('permission:books.ledger.view')->name('books.ledger.index');
 
         // Daftar Aset Tetap & Penyusutan
-        Route::get('/fixed-assets',  [FixedAssetController::class, 'index'])->name('books.fixed-assets.index');
+        Route::get('/fixed-assets',  [FixedAssetController::class, 'index'])->middleware('permission:books.assets.view')->name('books.fixed-assets.index');
         Route::middleware('role:super_admin')->group(function () {
             Route::post('/fixed-assets',                [FixedAssetController::class, 'store'])->name('books.fixed-assets.store');
             Route::put('/fixed-assets/{fixedAsset}',    [FixedAssetController::class, 'update'])->name('books.fixed-assets.update');
@@ -128,11 +143,13 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
 
         // Laporan keuangan
-        Route::get('/trial-balance',  [ReportController::class, 'trialBalance'])->name('books.trial-balance');
-        Route::get('/worksheet',      [ReportController::class, 'worksheet'])->name('books.worksheet');
-        Route::get('/balance-sheet',  [ReportController::class, 'balanceSheet'])->name('books.balance-sheet');
-        Route::get('/profit-loss',    [ReportController::class, 'profitLoss'])->name('books.profit-loss');
-        Route::get('/gross-turnover', [ReportController::class, 'grossTurnover'])->name('books.gross-turnover');
+        Route::middleware('permission:books.reports.view')->group(function () {
+            Route::get('/trial-balance',  [ReportController::class, 'trialBalance'])->name('books.trial-balance');
+            Route::get('/worksheet',      [ReportController::class, 'worksheet'])->name('books.worksheet');
+            Route::get('/balance-sheet',  [ReportController::class, 'balanceSheet'])->name('books.balance-sheet');
+            Route::get('/profit-loss',    [ReportController::class, 'profitLoss'])->name('books.profit-loss');
+            Route::get('/gross-turnover', [ReportController::class, 'grossTurnover'])->name('books.gross-turnover');
+        });
     });
 
     // Dokumen Template (Design & Generate) — terintegrasi modul terkait
@@ -142,6 +159,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/create',        [DocumentController::class, 'create'])->middleware('permission:letters.create')->name('documents.create');
         Route::post('/',             [DocumentController::class, 'store'])->middleware('permission:letters.create')->name('documents.store');
         Route::get('/{document}',    [DocumentController::class, 'show'])->name('documents.show');
+        // Sunting draft & komentar — Reviewer ke atas (reviewer/approval/super_admin).
+        Route::middleware('role:reviewer|approval|super_admin')->group(function () {
+            Route::get('/{document}/edit',     [DocumentController::class, 'edit'])->name('documents.edit');
+            Route::put('/{document}',          [DocumentController::class, 'update'])->name('documents.update');
+            Route::post('/{document}/comments',[DocumentCommentController::class, 'store'])->name('documents.comments.store');
+        });
         // Ubah status (Signed/Released/Cancelled) — khusus Super Admin (Direktur).
         Route::patch('/{document}/status', [DocumentController::class, 'setStatus'])->middleware('role:super_admin')->name('documents.status');
         Route::delete('/{document}', [DocumentController::class, 'destroy'])->middleware('permission:letters.delete')->name('documents.destroy');
@@ -155,6 +178,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/{user}',         [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
         Route::patch('/{user}/activate', [AdminUserController::class, 'activate'])->name('admin.users.activate');
         Route::patch('/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('admin.users.deactivate');
+        Route::patch('/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('admin.users.permissions.update');
     });
 
     // Manajemen Tugas (Task Management ala Notion)

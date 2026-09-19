@@ -31,6 +31,8 @@ class CustomerController extends Controller
                 'code'            => $c->code,
                 'name'            => $c->customer_name ?: $c->name,
                 'city'            => $c->city,
+                'is_wapu'         => (bool) $c->is_wapu,
+                'npwp'            => $c->npwp,
                 'opening_balance' => $opening,
                 'movement'        => $mv,
                 'current_balance' => $opening + $mv,
@@ -77,7 +79,10 @@ class CustomerController extends Controller
         }
 
         return Inertia::render('Books/CustomerLedger', [
-            'customer'        => ['id' => $customer->id, 'code' => $customer->code, 'name' => $customer->customer_name ?: $customer->name, 'city' => $customer->city],
+            'customer'        => [
+                'id' => $customer->id, 'code' => $customer->code, 'name' => $customer->customer_name ?: $customer->name,
+                'city' => $customer->city, 'is_wapu' => (bool) $customer->is_wapu, 'npwp' => $customer->npwp,
+            ],
             'opening_balance' => (float) $customer->receivable_balance,
             'rows'            => $rows,
             'current_balance' => $running,
@@ -99,11 +104,15 @@ class CustomerController extends Controller
                     ->ignore($customer->id),
             ],
             'receivable_balance' => 'nullable|numeric',
+            'is_wapu'            => 'boolean',
+            'npwp'               => 'nullable|string|max:30',
         ]);
 
         $customer->update([
             'code'               => $validated['code'] ?? null,
             'receivable_balance' => $validated['receivable_balance'] ?? 0,
+            'is_wapu'            => $validated['is_wapu'] ?? false,
+            'npwp'               => $validated['npwp'] ?? null,
         ]);
 
         return back()->with('success', 'Kode bantu & saldo awal customer diperbarui');

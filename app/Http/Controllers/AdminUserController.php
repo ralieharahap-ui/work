@@ -9,15 +9,32 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
 {
+    /** Permission granular per sub-menu yang bisa di-toggle langsung ke user (di luar/tambahan role). */
+    private const GRANULAR_GROUPS = [
+        'Akuntansi' => [
+            'books.accounts.view'   => 'Daftar Akun (COA)',
+            'books.journal.view'    => 'Jurnal Umum',
+            'books.ledger.view'     => 'Buku Besar',
+            'books.vendors.view'    => 'Master Vendor',
+            'books.customers.view'  => 'Master Customer',
+            'books.creditors.view'  => 'Kreditur Pendanaan (Investor/Bank)',
+            'books.creditors.manage'=> 'Kelola Kreditur Pendanaan',
+            'books.tax.view'        => 'Kontrol PPN',
+            'books.assets.view'     => 'Daftar Aset',
+            'books.reports.view'    => 'Laporan Keuangan',
+        ],
+    ];
+
     public function index(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
 
-        $users = User::with(['division', 'roles'])
+        $users = User::with(['division', 'roles', 'permissions'])
             ->where('organization_id', $orgId)
             ->where('id', '!=', auth()->id())
             ->when($request->status === 'pending', fn ($q) => $q->where('is_active', false))
@@ -28,13 +45,37 @@ class AdminUserController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $users->getCollection()->transform(fn ($u) => tap($u, fn ($u) => $u->direct_permissions = $u->permissions->pluck('name')));
+
         return Inertia::render('Admin/Users/Index', [
-            'users'         => $users,
-            'filters'       => $request->only(['search', 'status']),
-            'pendingCount'  => User::where('organization_id', $orgId)->where('is_active', false)->count(),
-            'divisions'     => Division::where('organization_id', $orgId)->orderBy('name')->get(['id', 'name']),
-            'roles'         => Role::orderBy('name')->pluck('name'),
+            'users'            => $users,
+            'filters'          => $request->only(['search', 'status']),
+            'pendingCount'     => User::where('organization_id', $orgId)->where('is_active', false)->count(),
+            'divisions'        => Division::where('organization_id', $orgId)->orderBy('name')->get(['id', 'name']),
+            'roles'            => Role::orderBy('name')->pluck('name'),
+            'granularGroups'   => self::GRANULAR_GROUPS,
         ]);
+    }
+
+    /** Super admin memberi/mencabut permission granular langsung ke user (tambahan di luar role-nya). */
+    public function updatePermissions(Request $request, User $user): RedirectResponse
+    {
+        abort_if($user->organization_id !== auth()->user()->organization_id, 403);
+
+        $known = collect(self::GRANULAR_GROUPS)->flatMap(fn ($g) => array_keys($g))->all();
+
+        $data = $request->validate([
+            'permissions'   => 'array',
+            'permissions.*' => 'string|in:' . implode(',', $known),
+        ]);
+
+        foreach ($data['permissions'] ?? [] as $name) {
+            Permission::firstOrCreate(['name' => $name]);
+        }
+
+        $user->syncPermissions($data['permissions'] ?? []);
+
+        return back()->with('success', "Hak akses tambahan {$user->name} berhasil diperbarui.");
     }
 
     /** Super admin membuat akun pengguna baru secara langsung (langsung aktif). */

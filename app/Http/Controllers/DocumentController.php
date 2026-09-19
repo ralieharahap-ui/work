@@ -107,18 +107,23 @@ class DocumentController extends Controller
             ->when($type, fn ($q) => $q->where('type', $type))
             ->when($status, fn ($q) => $q->where('status', $status))
             ->whereYear('doc_date', $year)
-            ->with(['user:id,name', 'releaser:id,name'])
+            ->with(['user:id,name', 'releaser:id,name', 'lastEditor:id,name'])
+            ->withCount(['comments as comment_count' => fn ($q) => $q->where('kind', 'comment')])
             ->latest('doc_date')->latest('created_at')
             ->get()
             ->map(fn ($d) => [
-                'id'         => $d->id,
-                'number'     => $d->number,
-                'doc_date'   => $d->doc_date->toDateString(),
-                'type_label' => $types[$d->type]['label'] ?? $d->type,
-                'perihal'    => $d->meta['extra']['perihal'] ?? ($d->meta['party']['name'] ?? '—'),
-                'user'       => $d->user?->name ?? '—',
-                'releaser'   => $d->releaser?->name,
-                'status'     => $d->status ?? 'on_review',
+                'id'             => $d->id,
+                'number'         => $d->number,
+                'doc_date'       => $d->doc_date->toDateString(),
+                'type_label'     => $types[$d->type]['label'] ?? $d->type,
+                'perihal'        => $d->meta['extra']['perihal'] ?? ($d->meta['party']['name'] ?? '—'),
+                'user'           => $d->user?->name ?? '—',
+                'releaser'       => $d->releaser?->name,
+                'status'         => $d->status ?? 'on_review',
+                'revision_count' => (int) $d->revision_count,
+                'last_edited_by' => $d->lastEditor?->name,
+                'last_edited_at' => $d->last_edited_at?->toDateTimeString(),
+                'comment_count'  => (int) $d->comment_count,
             ]);
 
         return Inertia::render('Documents/Log', [
@@ -127,6 +132,21 @@ class DocumentController extends Controller
             'statuses'  => $this->statusOptions(),
             'filter'    => ['type' => $type, 'status' => $status, 'year' => $year],
         ]);
+    }
+
+    /**
+     * Reviewer ke atas (reviewer / approval / super_admin) boleh menyunting
+     * draft dokumen & memberi komentar. Drafter biasa hanya bisa melihat.
+     */
+    private function canReview(): bool
+    {
+        return auth()->user()->hasAnyRole(['reviewer', 'approval', 'super_admin']);
+    }
+
+    /** Draft masih bisa disunting selama belum ditandatangani/dirilis/dibatalkan. */
+    private function isEditable(Document $document): bool
+    {
+        return ($document->status ?? 'on_review') === 'on_review';
     }
 
     public function create(Request $request): Response
@@ -138,13 +158,97 @@ class DocumentController extends Controller
         abort_unless(isset($types[$type]) && $types[$type]['active'], 404);
 
         $config = $types[$type];
+
+        return Inertia::render('Documents/Create', [
+            'type'         => $type,
+            'config'       => $config,
+            'company'      => $this->company(),
+            'prefill'      => $this->prefillFor($type, $config, $orgId),
+            'next_number'  => $this->previewNumber($orgId, $config['prefix']),
+        ]);
+    }
+
+    /**
+     * Form sunting draft — hanya reviewer ke atas & selama status masih On Review.
+     * Memakai form yang sama dengan pembuatan dokumen (mode edit).
+     */
+    public function edit(Document $document): Response
+    {
+        abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+        abort_unless($this->canReview(), 403, 'Hanya Reviewer ke atas yang dapat menyunting dokumen.');
+        abort_unless($this->isEditable($document), 403, 'Dokumen yang sudah ditandatangani/dirilis tidak dapat disunting.');
+
+        $types  = $this->types();
+        $type   = $document->type;
+        $config = $types[$type] ?? ['label' => $type, 'prefix' => '', 'icon' => '📄', 'active' => true, 'source' => null];
+
+        return Inertia::render('Documents/Create', [
+            'type'        => $type,
+            'config'      => $config,
+            'company'     => $this->company(),
+            'prefill'     => $this->prefillFor($type, $config, $document->organization_id),
+            'next_number' => $document->number,
+            'document'    => [
+                'id'       => $document->id,
+                'number'   => $document->number,
+                'doc_date' => $document->doc_date->toDateString(),
+                'meta'     => $document->meta,
+                'notes'    => $document->notes,
+                'ref_type' => $document->ref_type,
+                'ref_id'   => $document->ref_id,
+            ],
+        ]);
+    }
+
+    /**
+     * Simpan hasil suntingan reviewer. Setiap perubahan menambah nomor revisi,
+     * mencatat penyunting terakhir, dan menulis jejak otomatis di riwayat dokumen
+     * sehingga terlihat pada halaman Dokumentasi.
+     */
+    public function update(Request $request, Document $document)
+    {
+        abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+        abort_unless($this->canReview(), 403, 'Hanya Reviewer ke atas yang dapat menyunting dokumen.');
+        abort_unless($this->isEditable($document), 403, 'Dokumen yang sudah ditandatangani/dirilis tidak dapat disunting.');
+
+        $validated = $request->validate([
+            'doc_date'    => 'required|date',
+            'meta'        => 'required|array',
+            'notes'       => 'nullable|string',
+            'edit_reason' => 'nullable|string|max:500',
+        ]);
+
+        $document->update([
+            'doc_date'       => $validated['doc_date'],
+            'meta'           => $validated['meta'],
+            'notes'          => $validated['notes'] ?? null,
+            'last_edited_by' => auth()->id(),
+            'last_edited_at' => now(),
+            'revision_count' => (int) $document->revision_count + 1,
+        ]);
+
+        $document->comments()->create([
+            'user_id' => auth()->id(),
+            'kind'    => 'revision',
+            'body'    => trim($validated['edit_reason'] ?? '') !== ''
+                ? 'Revisi #' . $document->revision_count . ': ' . $validated['edit_reason']
+                : 'Revisi #' . $document->revision_count . ' — dokumen disunting oleh reviewer.',
+        ]);
+
+        return redirect()->route('documents.show', $document->id)
+            ->with('success', 'Dokumen ' . $document->number . ' diperbarui (revisi #' . $document->revision_count . ')');
+    }
+
+    /** Data pendukung form per jenis dokumen (dipakai create & edit). */
+    private function prefillFor(string $type, array $config, string $orgId): array
+    {
         $prefill = [];
 
         // Sumber data campuran: tarik data dari modul terkait bila tersedia.
-        if ($config['source'] === 'scenario') {
+        if (($config['source'] ?? null) === 'scenario') {
             $prefill['scenarios'] = CalculationScenario::where('organization_id', $orgId)
                 ->latest()->get(['id', 'name', 'volume', 'price_customer', 'total_revenue', 'is_wapu']);
-        } elseif ($config['source'] === 'journal') {
+        } elseif (($config['source'] ?? null) === 'journal') {
             $prefill['journals'] = JournalEntry::where('organization_id', $orgId)
                 ->where('is_posted', true)
                 ->with('lines.account:id,code,name')
@@ -160,12 +264,12 @@ class DocumentController extends Controller
                         'credit'  => (float) $l->credit,
                     ]),
                 ]);
-        } elseif ($config['source'] === 'shipment') {
+        } elseif (($config['source'] ?? null) === 'shipment') {
             $prefill['sources']   = PalmOilSource::where('organization_id', $orgId)
                 ->get(['id', 'name', 'city', 'province']);
             $prefill['customers'] = UnloadingPoint::where('organization_id', $orgId)
                 ->get(['id', 'name', 'customer_name', 'city', 'province']);
-        } elseif ($config['source'] === 'vendor') {
+        } elseif (($config['source'] ?? null) === 'vendor') {
             $prefill['vendors'] = \App\Models\Vendor::where('organization_id', $orgId)
                 ->where('is_active', true)
                 ->get(['id', 'code', 'name', 'address']);
@@ -177,13 +281,7 @@ class DocumentController extends Controller
                 ->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
         }
 
-        return Inertia::render('Documents/Create', [
-            'type'         => $type,
-            'config'       => $config,
-            'company'      => $this->company(),
-            'prefill'      => $prefill,
-            'next_number'  => $this->previewNumber($orgId, $config['prefix']),
-        ]);
+        return $prefill;
     }
 
     public function store(Request $request)
@@ -226,10 +324,20 @@ class DocumentController extends Controller
         abort_unless($document->organization_id === auth()->user()->organization_id, 403);
 
         $validated = $request->validate([
-            'status' => 'required|in:on_review,signed,released,cancelled',
+            'status'    => 'required|in:on_review,signed,released,cancelled',
+            'signature' => 'nullable|string', // data URL gambar tanda tangan (base64)
         ]);
 
         $document->status = $validated['status'];
+
+        // Bubuhkan tanda tangan digital saat menandatangani.
+        if ($validated['status'] === 'signed' && ! empty($validated['signature'])) {
+            $meta = $document->meta;
+            $meta['extra']['signature_data'] = $validated['signature'];
+            $meta['extra']['signed_by']      = auth()->user()->name;
+            $meta['extra']['signed_at']      = now()->toDateTimeString();
+            $document->meta = $meta;
+        }
 
         if ($validated['status'] === 'released') {
             $document->released_by = auth()->id();
@@ -237,6 +345,13 @@ class DocumentController extends Controller
         }
 
         $document->save();
+
+        // Jejak perubahan status ikut tercatat di riwayat dokumen.
+        $document->comments()->create([
+            'user_id' => auth()->id(),
+            'kind'    => 'status',
+            'body'    => 'Status diubah menjadi ' . $this->statusOptions()[$validated['status']] . '.',
+        ]);
 
         // Saat dirilis: buat jurnal otomatis untuk dokumen berbasis biaya.
         $journalMsg = '';
@@ -311,23 +426,37 @@ class DocumentController extends Controller
 
         $types = $this->types();
 
+        $document->load(['lastEditor:id,name', 'comments.user:id,name']);
+
         return Inertia::render('Documents/Show', [
             'document' => [
-                'id'          => $document->id,
-                'type'        => $document->type,
-                'number'      => $document->number,
-                'doc_date'    => $document->doc_date->toDateString(),
-                'status'      => $document->status ?? 'on_review',
-                'released_by' => $document->releaser?->name,
-                'released_at' => $document->released_at?->toDateTimeString(),
-                'meta'        => $document->meta,
-                'notes'       => $document->notes,
-                'user'        => $document->user?->name,
+                'id'             => $document->id,
+                'type'           => $document->type,
+                'number'         => $document->number,
+                'doc_date'       => $document->doc_date->toDateString(),
+                'status'         => $document->status ?? 'on_review',
+                'released_by'    => $document->releaser?->name,
+                'released_at'    => $document->released_at?->toDateTimeString(),
+                'meta'           => $document->meta,
+                'notes'          => $document->notes,
+                'user'           => $document->user?->name,
+                'last_edited_by' => $document->lastEditor?->name,
+                'last_edited_at' => $document->last_edited_at?->toDateTimeString(),
+                'revision_count' => (int) $document->revision_count,
             ],
             'config'      => $types[$document->type] ?? ['label' => $document->type],
             'company'     => $this->company(),
             'statuses'    => $this->statusOptions(),
             'can_release' => auth()->user()->hasRole('super_admin'),
+            'can_review'  => $this->canReview(),
+            'can_edit'    => $this->canReview() && $this->isEditable($document),
+            'comments'    => $document->comments->sortBy('created_at')->values()->map(fn ($c) => [
+                'id'   => $c->id,
+                'body' => $c->body,
+                'kind' => $c->kind,
+                'user' => $c->user?->name ?? 'Pengguna dihapus',
+                'at'   => $c->created_at?->toDateTimeString(),
+            ]),
         ]);
     }
 

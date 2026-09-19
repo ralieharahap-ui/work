@@ -1,0 +1,53 @@
+# ============================================================
+# PT GEOSYS ENERGI PRIMA — ERP  |  Konfigurasi Hosting (cPanel)
+# ------------------------------------------------------------
+# Salin isi berkas ini menjadi berkas bernama  .env
+# di dalam folder aplikasi (contoh: /home/USERNAME/gep-erp/.env)
+# lalu isi bagian yang bertanda  <<< ISI >>>
+# ============================================================
+
+APP_NAME="PT Geosys Energi Prima"
+APP_ENV=production
+APP_KEY=                                   # <<< ISI >>> lihat Langkah 6 pada panduan
+APP_DEBUG=false
+APP_URL=https://erp.namadomain.co.id       # <<< ISI >>> alamat domain/subdomain final
+
+APP_LOCALE=id
+APP_TIMEZONE=Asia/Jakarta
+
+LOG_CHANNEL=daily
+LOG_LEVEL=error
+
+# ---------- Database MySQL cPanel ----------
+# Nama database & user di cPanel selalu berawalan nama akun cPanel,
+# contoh: geosys_gep_erp dan geosys_gepuser
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=                               # <<< ISI >>> mis. geosys_gep_erp
+DB_USERNAME=                               # <<< ISI >>> mis. geosys_gepuser
+DB_PASSWORD=                               # <<< ISI >>> kata sandi user database
+
+# ---------- Cache / Session / Queue ----------
+# Shared hosting umumnya tanpa Redis — driver file & sync paling aman.
+CACHE_STORE=file
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+SESSION_LIFETIME=480
+SESSION_SECURE_COOKIE=true
+QUEUE_CONNECTION=sync
+
+FILESYSTEM_DISK=local
+
+# ---------- Email ----------
+# Gunakan akun email cPanel (Email Accounts) agar tidak perlu layanan luar.
+MAIL_MAILER=smtp
+MAIL_HOST=mail.namadomain.co.id            # <<< ISI >>>
+MAIL_PORT=587
+MAIL_USERNAME=                             # <<< ISI >>> mis. noreply@namadomain.co.id
+MAIL_PASSWORD=                             # <<< ISI >>>
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@namadomain.co.id"
+MAIL_FROM_NAME="PT Geosys Energi Prima"
+
+VITE_APP_NAME="${APP_NAME}"

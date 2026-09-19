@@ -142,20 +142,50 @@ function initMeta(type) {
             items: [emptyItem()],
             tembusan: [emptyTembusan()],
             amounts: {},
-            extra: { ...ex, signer_title: 'Manajer', scope: 'eksternal', sifat: 'Informasi', lampiran: '', content_mode: 'text', content_text: '', pic_nama: '', pic_kontak: '', table_columns: DEFAULT_TABLE_COLUMNS.map((c) => ({ ...c })) },
+            extra: { ...ex, signer_title: 'Manajer', scope: 'eksternal', sifat: 'Informasi', lampiran: '', content_text: '', include_table: false, pic_nama: '', pic_kontak: '', table_columns: DEFAULT_TABLE_COLUMNS.map((c) => ({ ...c })) },
         };
     }
     return base;
 }
 
-export default function DocumentsCreate({ type, config, company, prefill, next_number }) {
-    const { data, setData, post, processing, transform } = useForm({
+/**
+ * Gabungkan meta dokumen tersimpan dengan kerangka default jenisnya.
+ * Menjaga form tetap aman untuk dokumen lama yang belum punya seluruh field.
+ */
+function mergeMeta(type, saved) {
+    const base = initMeta(type);
+    if (!saved) return base;
+
+    const m = { ...base, ...saved };
+    m.party   = { ...(base.party || {}),   ...(saved.party || {}) };
+    m.amounts = { ...(base.amounts || {}), ...(saved.amounts || {}) };
+    m.extra   = { ...(base.extra || {}),   ...(saved.extra || {}) };
+
+    // Field bertipe daftar: pakai data tersimpan bila ada isinya, jika tidak pakai baris kosong bawaan.
+    ['items', 'lines', 'cost_items', 'tembusan', 'vehicles', 'references'].forEach((k) => {
+        if (base[k] !== undefined) {
+            m[k] = Array.isArray(saved[k]) && saved[k].length ? saved[k] : base[k];
+        }
+    });
+    ['ref_docs', 'table_columns'].forEach((k) => {
+        if (base.extra?.[k] !== undefined) {
+            m.extra[k] = Array.isArray(saved.extra?.[k]) && saved.extra[k].length ? saved.extra[k] : base.extra[k];
+        }
+    });
+
+    return m;
+}
+
+export default function DocumentsCreate({ type, config, company, prefill, next_number, document = null }) {
+    const isEdit = !!document;
+    const { data, setData, post, put, processing, transform } = useForm({
         type,
-        doc_date: new Date().toISOString().slice(0, 10),
-        meta: initMeta(type),
-        ref_type: null,
-        ref_id: null,
-        notes: '',
+        doc_date: isEdit ? document.doc_date : new Date().toISOString().slice(0, 10),
+        meta: isEdit ? mergeMeta(type, document.meta) : initMeta(type),
+        ref_type: isEdit ? document.ref_type : null,
+        ref_id: isEdit ? document.ref_id : null,
+        notes: isEdit ? (document.notes ?? '') : '',
+        edit_reason: '',
     });
 
     const meta = data.meta;
@@ -290,18 +320,36 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
             ...d,
             meta: { ...d.meta, amounts: { ...d.meta.amounts, subtotal, ppn, total } },
         }));
-        post(route('documents.store'));
+        if (isEdit) put(route('documents.update', document.id));
+        else post(route('documents.store'));
     };
+
+    const pageTitle = (isEdit ? 'Revisi ' : 'Buat ') + config.label;
 
     return (
         <>
-            <Head title={'Buat ' + config.label} />
-            <AppLayout title={'Buat ' + config.label}>
+            <Head title={pageTitle} />
+            <AppLayout title={isEdit ? `Revisi ${config.label} — ${document.number}` : pageTitle}>
                 <div className="mb-4 print:hidden">
-                    <Link href={route('documents.index')} className="text-slate-400 hover:text-white text-sm">← Kembali ke Daftar Dokumen</Link>
+                    {isEdit
+                        ? <Link href={route('documents.show', document.id)} className="text-slate-400 hover:text-white text-sm">← Kembali ke Dokumen</Link>
+                        : <Link href={route('documents.index')} className="text-slate-400 hover:text-white text-sm">← Kembali ke Daftar Dokumen</Link>}
                 </div>
 
                 <form onSubmit={submit} className="space-y-5 max-w-4xl">
+                    {isEdit && (
+                        <div className="card border border-amber-500/30 bg-amber-950/20">
+                            <p className="text-amber-300 text-sm font-medium mb-1">Mode Revisi Reviewer</p>
+                            <p className="text-slate-400 text-xs mb-3">
+                                Perubahan akan tercatat sebagai revisi dokumen dan muncul di halaman Dokumentasi beserta nama penyunting.
+                            </p>
+                            <label className="label">Alasan / Catatan Revisi (opsional)</label>
+                            <input className="input" value={data.edit_reason}
+                                onChange={(e) => setData('edit_reason', e.target.value)}
+                                placeholder="Contoh: koreksi jumlah tonase & nama penerima" />
+                        </div>
+                    )}
+
                     <div className="card grid sm:grid-cols-3 gap-3">
                         <div>
                             <label className="label">Nomor Dokumen</label>
@@ -640,13 +688,20 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
                             </div>
 
                             <div className="card">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <h3 className="text-white font-medium flex-1">Isi Surat (Body)</h3>
-                                    <label className="flex items-center gap-1 text-xs text-slate-300"><input type="radio" name="cmode" checked={meta.extra.content_mode !== 'table'} onChange={() => setExtra('content_mode', 'text')} /> Narasi/Listing</label>
-                                    <label className="flex items-center gap-1 text-xs text-slate-300"><input type="radio" name="cmode" checked={meta.extra.content_mode === 'table'} onChange={() => setExtra('content_mode', 'table')} /> Tabel</label>
-                                </div>
-                                {meta.extra.content_mode === 'table' ? (
-                                    <div className="overflow-x-auto">
+                                <h3 className="text-white font-medium mb-3">Isi Surat (Body)</h3>
+
+                                {/* Narasi / Listing — selalu tersedia */}
+                                <label className="label">Narasi / Listing</label>
+                                <textarea className="input" rows={5} value={meta.extra.content_text} onChange={(e) => setExtra('content_text', e.target.value)}
+                                    placeholder="Tuliskan paragraf/isi surat. Gunakan baris baru untuk listing (mis. 1. , 2. )." />
+
+                                {/* Tabel — opsional, dapat digabung dengan narasi di atas */}
+                                <label className="flex items-center gap-2 mt-4 text-sm text-slate-300">
+                                    <input type="checkbox" checked={!!meta.extra.include_table} onChange={(e) => setExtra('include_table', e.target.checked)} />
+                                    Sertakan tabel pada isi surat
+                                </label>
+                                {meta.extra.include_table && (
+                                    <div className="overflow-x-auto mt-3">
                                         <div className="flex items-center justify-between mb-2">
                                             <p className="text-xs text-slate-500">Kolom dapat disesuaikan: ubah nama header, tambah, atau kurangi kolom sesuai kebutuhan.</p>
                                             <button type="button" onClick={addTableColumn} className="btn-secondary text-xs shrink-0">+ Kolom</button>
@@ -680,9 +735,8 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
                                         </table>
                                         <button type="button" onClick={addTableRow} className="btn-secondary mt-3">+ Baris</button>
                                     </div>
-                                ) : (
-                                    <textarea className="input" rows={5} value={meta.extra.content_text} onChange={(e) => setExtra('content_text', e.target.value)} placeholder="Tuliskan poin/isi surat. Gunakan baris baru untuk listing." />
                                 )}
+
                                 <div className="grid sm:grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-700/70">
                                     <div><label className="label">PIC (Nama)</label><input className="input" value={meta.extra.pic_nama} onChange={(e) => setExtra('pic_nama', e.target.value)} /></div>
                                     <div><label className="label">PIC (Kontak)</label><input className="input" value={meta.extra.pic_kontak} onChange={(e) => setExtra('pic_kontak', e.target.value)} placeholder="mis. 0812xxxx / email" /></div>
@@ -799,8 +853,10 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
                     </div>
 
                     <div className="flex justify-end gap-2 print:hidden">
-                        <Link href={route('documents.index')} className="btn-secondary">Batal</Link>
-                        <button type="submit" className="btn-primary" disabled={processing}>Simpan & Buat Dokumen</button>
+                        <Link href={isEdit ? route('documents.show', document.id) : route('documents.index')} className="btn-secondary">Batal</Link>
+                        <button type="submit" className="btn-primary" disabled={processing}>
+                            {isEdit ? 'Simpan Revisi' : 'Simpan & Buat Dokumen'}
+                        </button>
                     </div>
                 </form>
             </AppLayout>

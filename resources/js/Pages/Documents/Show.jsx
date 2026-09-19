@@ -1,9 +1,27 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 
 const num = (v) => parseFloat(v) || 0;
+const isListLine = (s) => /^\s*(\d+[.)]|[-•*])\s+/.test(s);
+
+/** Render teks badan surat: paragraf rata kiri-kanan (justify); baris list rata kiri. */
+function JustifiedText({ text, className = '' }) {
+    const lines = String(text || '').split(/\n/);
+    return (
+        <div className={className}>
+            {lines.map((ln, i) => (
+                ln.trim() === ''
+                    ? <div key={i} style={{ height: '0.5em' }} />
+                    : <p key={i} className={isListLine(ln) ? 'text-left' : 'text-justify'}>{ln}</p>
+            ))}
+        </div>
+    );
+}
 const fmt = (n) => new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0));
 const tgl = (s) => (s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—');
+const waktu = (s) => (s ? new Date(s.replace(' ', 'T')).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
 // Kolom default tabel isi Surat Resmi — dipakai sebagai fallback untuk dokumen lama yang belum menyimpan table_columns.
 const DEFAULT_TABLE_COLUMNS = [
     { key: 'desc', label: 'Uraian', align: 'left' },
@@ -46,16 +64,16 @@ const STATUS_BADGE = {
 // Kode unik dokumen (deterministik dari id).
 const uniqueCode = (id) => 'GEP-' + String(id || '').replace(/-/g, '').slice(0, 10).toUpperCase();
 
-/** Kop surat — hanya di header dokumen (poin 3.3). */
-function Kop({ company }) {
+/** Kop surat — hanya di header dokumen (poin 3.3). `big`: logo lebih besar & teks lebih kecil (estetik). */
+function Kop({ company, big = false }) {
     return (
         <div className="flex items-center gap-4 border-b-2 border-slate-800 pb-4 mb-6">
-            <img src={company.logo} alt="Logo" className="w-16 h-16 object-contain" />
+            <img src={company.logo} alt="Logo" className={`${big ? 'w-24 h-24' : 'w-16 h-16'} object-contain shrink-0`} />
             <div className="flex-1">
-                <h1 className="text-xl font-bold text-slate-900 leading-tight">{company.name}</h1>
-                <p className="text-xs text-slate-600 mt-1">{company.address}</p>
-                <p className="text-xs text-slate-500">Website: {company.website} &nbsp;|&nbsp; Email: {company.email}</p>
-                <p className="text-xs text-slate-500">Telp. : {company.phone}</p>
+                <h1 className={`${big ? 'text-lg' : 'text-xl'} font-bold text-slate-900 leading-tight`}>{company.name}</h1>
+                <p className={`${big ? 'text-[10.5px]' : 'text-xs'} text-slate-600 mt-1`}>{company.address}</p>
+                <p className={`${big ? 'text-[10.5px]' : 'text-xs'} text-slate-500`}>Website: {company.website} &nbsp;|&nbsp; Email: {company.email}</p>
+                <p className={`${big ? 'text-[10.5px]' : 'text-xs'} text-slate-500`}>Telp. : {company.phone}</p>
             </div>
         </div>
     );
@@ -63,13 +81,16 @@ function Kop({ company }) {
 
 /** Tanda tangan Direksi (poin 3.4) — Hormat Kami / PT Geosys / (ruang materai) / Nama / Jabatan. */
 function DirekturSign({ company, meta }) {
+    const sig = meta.extra?.signature_data;
     return (
         <div className="flex justify-end mt-10 text-sm text-slate-700">
             <div className="w-64 text-center">
                 <p>Hormat Kami,</p>
                 <p className="font-semibold">{company.name}</p>
-                {/* ruang setinggi materai + tanda tangan */}
-                <div style={{ height: '90px' }} />
+                {/* ruang setinggi materai + tanda tangan (gambar bila ada) */}
+                {sig
+                    ? <img src={sig} alt="Tanda tangan" className="mx-auto my-1 object-contain" style={{ height: '90px' }} />
+                    : <div style={{ height: '90px' }} />}
                 <p className="font-semibold underline uppercase">{meta.extra?.signer_name || '(_____________________)'}</p>
                 <p className="text-slate-600">{meta.extra?.signer_title || 'Direktur Utama'}</p>
             </div>
@@ -123,14 +144,62 @@ function Footer({ company, code }) {
     );
 }
 
-export default function DocumentsShow({ document, config, company, statuses, can_release }) {
+export default function DocumentsShow({ document, config, company, statuses, can_release, can_review = false, can_edit = false, comments = [] }) {
     const m = document.meta || {};
     const title = TITLES[document.type] || (config.label || '').toUpperCase();
     const total = num(m.amounts?.total);
     const code = uniqueCode(document.id);
     const status = document.status || 'on_review';
+    const isSurat = document.type === 'surat_resmi';
 
     const setStatus = (s) => router.patch(route('documents.status', document.id), { status: s }, { preserveScroll: true });
+
+    // QR otomatis saat surat resmi dirilis (di bawah label INTERNAL/EKSTERNAL).
+    const [qr, setQr] = useState(null);
+    useEffect(() => {
+        if (isSurat && status === 'released') {
+            const payload = `${company.name}\nNomor: ${document.number}\nKode: ${code}\nStatus: RELEASED`;
+            QRCode.toDataURL(payload, { margin: 1, width: 240 }).then(setQr).catch(() => setQr(null));
+        } else {
+            setQr(null);
+        }
+    }, [isSurat, status, document.number, code, company.name]);
+
+    // Tanda tangan digital (surat resmi): klik Tandatangani → unggah gambar ttd (dikompres).
+    const sigInputRef = useRef(null);
+    const onSignClick = () => { if (isSurat) sigInputRef.current?.click(); else setStatus('signed'); };
+    const onSigFile = (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = ''; // reset agar bisa pilih berkas yang sama lagi
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { alert('Berkas tanda tangan harus berupa gambar (PNG/JPG).'); return; }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                // Kompres: skala ke lebar maksimum 500px, keluarkan PNG (menjaga transparansi).
+                const maxW = 500;
+                const scale = Math.min(1, maxW / img.width);
+                // window.document — prop halaman ini juga bernama `document`.
+                const canvas = window.document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.width * scale));
+                canvas.height = Math.max(1, Math.round(img.height * scale));
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/png');
+                router.patch(route('documents.status', document.id),
+                    { status: 'signed', signature: dataUrl },
+                    {
+                        preserveScroll: true,
+                        onError: () => alert('Gagal menyimpan tanda tangan. Pastikan dokumen masih ada, lalu coba lagi.'),
+                    });
+            };
+            img.onerror = () => alert('Gambar tanda tangan tidak dapat dibaca.');
+            img.src = reader.result;
+        };
+        reader.onerror = () => alert('Berkas tidak dapat dibaca.');
+        reader.readAsDataURL(file);
+    };
 
     return (
         <>
@@ -147,13 +216,22 @@ export default function DocumentsShow({ document, config, company, statuses, can
                 <div className="doc-toolbar flex flex-wrap items-center gap-2 mb-4">
                     <Link href={route('documents.index')} className="btn-secondary">← Kembali</Link>
                     <span className={`badge ${STATUS_BADGE[status] || 'badge-slate'}`}>{statuses?.[status] || status}</span>
+                    {document.revision_count > 0 && (
+                        <span className="badge badge-slate" title={`Terakhir disunting ${document.last_edited_by || '—'}${document.last_edited_at ? ' • ' + waktu(document.last_edited_at) : ''}`}>
+                            Revisi ke-{document.revision_count}
+                        </span>
+                    )}
                     {document.released_by && <span className="text-xs text-slate-400">Dirilis oleh {document.released_by}</span>}
                     <div className="flex-1" />
-                    {can_release && status !== 'signed' && <button onClick={() => setStatus('signed')} className="btn-secondary">✍️ Tandatangani</button>}
+                    {can_edit && (
+                        <Link href={route('documents.edit', document.id)} className="btn-secondary">✏️ Edit Draft</Link>
+                    )}
+                    {can_release && status !== 'signed' && <button onClick={onSignClick} className="btn-secondary">✍️ Tandatangani</button>}
                     {can_release && status !== 'released' && <button onClick={() => setStatus('released')} className="btn-primary">✅ Rilis</button>}
                     {can_release && status !== 'cancelled' && <button onClick={() => setStatus('cancelled')} className="btn-danger">Batalkan</button>}
                     <button onClick={() => window.print()} className="btn-primary">🖨️ Cetak / PDF</button>
                     {can_release && <button onClick={() => router.delete(route('documents.destroy', document.id))} className="btn-danger">Hapus</button>}
+                    <input ref={sigInputRef} type="file" accept="image/*" className="hidden" onChange={onSigFile} />
                 </div>
 
                 <div className="print-sheet bg-white text-slate-800 rounded-lg shadow-card mx-auto p-8 sm:p-10 relative"
@@ -165,13 +243,13 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     )}
 
                     {/* HEADER */}
-                    <Kop company={company} />
+                    <Kop company={company} big={isSurat} />
 
                     {document.type === 'surat_resmi' ? (
                         <>
-                            {/* BODY 1 — kepala surat resmi */}
-                            <div className="flex justify-between items-start mb-4 text-sm">
-                                <table className="text-slate-700">
+                            {/* BODY 1 — kepala surat resmi (line spacing rapat) */}
+                            <div className="flex justify-between items-start mb-3 text-sm">
+                                <table className="text-slate-700" style={{ lineHeight: 1.1 }}>
                                     <tbody>
                                         <tr><td className="pr-3 text-slate-500 align-top">Tanggal</td><td className="align-top">: {tgl(document.doc_date)}</td></tr>
                                         <tr><td className="pr-3 text-slate-500 align-top">Nomor</td><td className="align-top font-mono">: {document.number}</td></tr>
@@ -180,13 +258,16 @@ export default function DocumentsShow({ document, config, company, statuses, can
                                         <tr><td className="pr-3 text-slate-500 align-top">Perihal</td><td className="align-top font-medium">: {m.extra?.perihal || '—'}</td></tr>
                                     </tbody>
                                 </table>
-                                <span className="border-2 border-slate-800 px-3 py-1 font-bold tracking-wider">
-                                    {(m.extra?.scope || 'eksternal') === 'internal' ? 'INTERNAL' : 'EKSTERNAL'}
-                                </span>
+                                <div className="flex flex-col items-center gap-2">
+                                    <span className="border-2 border-slate-800 px-3 py-1 font-bold tracking-wider">
+                                        {(m.extra?.scope || 'eksternal') === 'internal' ? 'INTERNAL' : 'EKSTERNAL'}
+                                    </span>
+                                    {qr && <img src={qr} alt="QR verifikasi" className="w-24 h-24 object-contain" />}
+                                </div>
                             </div>
-                            {/* BODY 2 — kepada / dari */}
+                            {/* BODY 2 — kepada / dari (sedikit lebih longgar dari body 1) */}
                             <div className="flex justify-between items-start mb-4 text-sm gap-6">
-                                <div>
+                                <div style={{ lineHeight: 1.35 }}>
                                     <p>Yth,</p>
                                     <p className="font-semibold text-slate-900">{m.party?.name || '—'}</p>
                                     {m.party?.instansi && <p className="text-slate-800">{m.party.instansi}</p>}
@@ -227,7 +308,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     )}
 
                     {/* BODY 1 — Narasi pembuka */}
-                    {m.extra?.narasi_pembuka && <p className="text-sm text-slate-700 mb-3">{m.extra.narasi_pembuka}</p>}
+                    {m.extra?.narasi_pembuka && <p className={`text-sm text-slate-700 mb-3 ${isSurat ? 'text-justify' : ''}`}>{m.extra.narasi_pembuka}</p>}
 
                     {/* Merujuk (khusus surat jalan) */}
                     {document.type === 'surat_jalan' && m.references && m.references.some((r) => (r.text || '').trim()) && (
@@ -469,14 +550,19 @@ export default function DocumentsShow({ document, config, company, statuses, can
                         </>
                     )}
 
-                    {/* Surat Resmi — BODY 4: isi + PIC */}
-                    {document.type === 'surat_resmi' && (
+                    {/* Surat Resmi — BODY 4: narasi + tabel (bisa keduanya) + PIC */}
+                    {document.type === 'surat_resmi' && (() => {
+                        const cols = m.extra?.table_columns || DEFAULT_TABLE_COLUMNS;
+                        const showTable = (m.extra?.include_table || m.extra?.content_mode === 'table')
+                            && (m.items || []).some((it) => cols.some((c) => String(it[c.key] ?? '').trim() !== ''));
+                        return (
                         <div className="text-sm text-slate-700">
-                            {m.extra?.content_mode === 'table' ? (
+                            {m.extra?.content_text && <JustifiedText text={m.extra.content_text} className="mb-3" />}
+                            {showTable && (
                                 <table className="w-full text-sm border border-slate-300 mb-3">
                                     <thead>
                                         <tr className="bg-slate-100">
-                                            {(m.extra?.table_columns || DEFAULT_TABLE_COLUMNS).map((col) => (
+                                            {cols.map((col) => (
                                                 <th key={col.key} className={`border border-slate-300 px-3 py-2 ${col.align === 'right' ? 'text-right' : 'text-left'}`}>{col.label}</th>
                                             ))}
                                         </tr>
@@ -484,28 +570,27 @@ export default function DocumentsShow({ document, config, company, statuses, can
                                     <tbody>
                                         {(m.items || []).map((it, i) => (
                                             <tr key={i}>
-                                                {(m.extra?.table_columns || DEFAULT_TABLE_COLUMNS).map((col) => (
+                                                {cols.map((col) => (
                                                     <td key={col.key} className={`border border-slate-300 px-3 py-2 ${col.align === 'right' ? 'text-right' : ''}`}>{it[col.key]}</td>
                                                 ))}
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                            ) : (
-                                m.extra?.content_text && <p className="whitespace-pre-line mb-3">{m.extra.content_text}</p>
                             )}
-                            <p>
+                            <p className="text-justify">
                                 Untuk konfirmasi atau pertanyaan lebih lanjut dapat menghubungi
                                 {' '}<span className="font-medium">{m.extra?.pic_nama || 'PIC kami'}</span>
                                 {m.extra?.pic_kontak ? ` (${m.extra.pic_kontak})` : ''} atau melalui email perusahaan {company.email}.
                             </p>
                         </div>
-                    )}
+                        );
+                    })()}
 
                     {document.notes && <p className="text-sm text-slate-600 mt-4"><span className="font-medium">Catatan:</span> {document.notes}</p>}
 
                     {/* Narasi penutup */}
-                    {m.extra?.narasi_penutup && <p className="text-sm text-slate-700 mt-4">{m.extra.narasi_penutup}</p>}
+                    {m.extra?.narasi_penutup && <p className={`text-sm text-slate-700 mt-4 ${isSurat ? 'text-justify' : ''}`}>{m.extra.narasi_penutup}</p>}
 
                     {/* TANDA TANGAN */}
                     {document.type === 'surat_jalan'
@@ -551,7 +636,95 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     {/* FOOTER */}
                     <Footer company={company} code={code} />
                 </div>
+
+                <ReviewPanel
+                    documentId={document.id}
+                    comments={comments}
+                    canReview={can_review}
+                    editable={status === 'on_review'}
+                />
             </AppLayout>
         </>
+    );
+}
+
+const TRAIL_STYLE = {
+    revision: { label: 'Revisi',    cls: 'badge-amber' },
+    status:   { label: 'Status',    cls: 'badge-blue' },
+    comment:  { label: 'Komentar',  cls: 'badge-slate' },
+};
+
+/**
+ * Riwayat review dokumen: komentar reviewer + jejak otomatis (revisi & perubahan status).
+ * Hanya Reviewer ke atas yang dapat mengirim komentar; semua pengguna dapat membacanya.
+ */
+function ReviewPanel({ documentId, comments, canReview, editable }) {
+    const { data, setData, post, processing, reset } = useForm({ body: '' });
+
+    const submit = (e) => {
+        e.preventDefault();
+        if (!data.body.trim()) return;
+        post(route('documents.comments.store', documentId), {
+            preserveScroll: true,
+            onSuccess: () => reset('body'),
+        });
+    };
+
+    return (
+        <div className="print:hidden max-w-[800px] mx-auto mt-6 card">
+            <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-white font-semibold text-sm">Riwayat Review &amp; Komentar</h2>
+                <span className="badge badge-slate">{comments.length}</span>
+            </div>
+            <p className="text-slate-500 text-xs mb-4">
+                Setiap revisi dan perubahan status tercatat otomatis di sini, dan rekapnya tampil di halaman Dokumentasi.
+            </p>
+
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                {comments.length === 0 && (
+                    <p className="text-slate-500 text-sm">Belum ada komentar atau revisi pada dokumen ini.</p>
+                )}
+                {comments.map((c) => {
+                    const style = TRAIL_STYLE[c.kind] || TRAIL_STYLE.comment;
+                    return (
+                        <div key={c.id} className="border-l-2 border-slate-700 pl-3 py-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-slate-200 text-sm font-medium">{c.user}</span>
+                                <span className={`badge ${style.cls}`}>{style.label}</span>
+                                <span className="text-slate-500 text-[11px]">{waktu(c.at)}</span>
+                            </div>
+                            <p className="text-slate-300 text-sm mt-0.5 whitespace-pre-line">{c.body}</p>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {canReview ? (
+                <form onSubmit={submit} className="mt-4 pt-4 border-t border-slate-700">
+                    <label className="label">Tambah Komentar</label>
+                    <textarea
+                        className="input"
+                        rows={3}
+                        value={data.body}
+                        onChange={(e) => setData('body', e.target.value)}
+                        placeholder="Catatan koreksi, persetujuan, atau permintaan perbaikan untuk pembuat dokumen…"
+                    />
+                    <div className="flex justify-end mt-2">
+                        <button type="submit" className="btn-primary" disabled={processing || !data.body.trim()}>
+                            Kirim Komentar
+                        </button>
+                    </div>
+                    {!editable && (
+                        <p className="text-slate-500 text-xs mt-2">
+                            Dokumen sudah ditandatangani/dirilis — isi dokumen tidak dapat disunting lagi, namun komentar tetap bisa ditambahkan.
+                        </p>
+                    )}
+                </form>
+            ) : (
+                <p className="text-slate-500 text-xs mt-4 pt-4 border-t border-slate-700">
+                    Hanya pengguna dengan hak akses Reviewer ke atas yang dapat menyunting draft &amp; memberi komentar.
+                </p>
+            )}
+        </div>
     );
 }

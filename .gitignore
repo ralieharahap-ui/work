@@ -20,3 +20,9 @@ yarn-error.log
 /akuntansi-netlify
 /.claude
 database/database.sqlite
+
+# Hasil rakitan paket deploy (dibuat ulang lewat deploy/build-paket-deploy.ps1)
+/deploy/paket-upload
+
+# Dump SQL master (mengandung hash password & token — jangan pernah masuk repo publik)
+/deploy/database/*.sql

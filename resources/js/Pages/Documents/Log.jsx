@@ -3,6 +3,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { useState } from 'react';
 
 const tgl = (s) => new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+const waktu = (s) => (s ? new Date(s.replace(' ', 'T')).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null);
 
 const STATUS_BADGE = {
     on_review: 'badge-amber', signed: 'badge-blue', released: 'badge-green', cancelled: 'badge-red',
@@ -52,13 +53,15 @@ export default function DocumentsLog({ documents, types, statuses, filter }) {
                                 <th className="table-header">Tipe Dokumen</th>
                                 <th className="table-header">Perihal</th>
                                 <th className="table-header">User Perilis</th>
+                                <th className="table-header">Revisi Terakhir</th>
+                                <th className="table-header text-center">Komentar</th>
                                 <th className="table-header">Status</th>
                                 <th className="table-header print:hidden"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {documents.length === 0 && (
-                                <tr><td colSpan={7} className="table-cell text-center text-slate-400">Belum ada dokumen.</td></tr>
+                                <tr><td colSpan={9} className="table-cell text-center text-slate-400">Belum ada dokumen.</td></tr>
                             )}
                             {documents.map((d) => (
                                 <tr key={d.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
@@ -67,6 +70,20 @@ export default function DocumentsLog({ documents, types, statuses, filter }) {
                                     <td className="table-cell">{d.type_label}</td>
                                     <td className="table-cell">{d.perihal}</td>
                                     <td className="table-cell text-slate-300">{d.releaser || d.user}</td>
+                                    <td className="table-cell">
+                                        {d.revision_count > 0 ? (
+                                            <div className="leading-tight">
+                                                <span className="badge badge-amber">Rev. {d.revision_count}</span>
+                                                <p className="text-slate-400 text-[11px] mt-1">{d.last_edited_by || '—'}</p>
+                                                <p className="text-slate-500 text-[10px]">{waktu(d.last_edited_at) || ''}</p>
+                                            </div>
+                                        ) : <span className="text-slate-600">—</span>}
+                                    </td>
+                                    <td className="table-cell text-center">
+                                        {d.comment_count > 0
+                                            ? <span className="badge badge-blue">💬 {d.comment_count}</span>
+                                            : <span className="text-slate-600">—</span>}
+                                    </td>
                                     <td className="table-cell">
                                         <span className={`badge ${STATUS_BADGE[d.status] || 'badge-slate'}`}>{statuses[d.status] || d.status}</span>
                                     </td>

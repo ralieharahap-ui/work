@@ -6,9 +6,9 @@ const fmt = (n) => new Intl.NumberFormat('id-ID').format(Math.round(Number(n) ||
 
 export default function Customers({ customers, can_manage }) {
     const [editing, setEditing] = useState(null); // customer row being edited
-    const { data, setData, put, processing, errors, reset } = useForm({ code: '', receivable_balance: 0 });
+    const { data, setData, put, processing, errors, reset } = useForm({ code: '', receivable_balance: 0, is_wapu: false, npwp: '' });
 
-    const openEdit = (c) => { setData({ code: c.code || '', receivable_balance: c.opening_balance || 0 }); setEditing(c); };
+    const openEdit = (c) => { setData({ code: c.code || '', receivable_balance: c.opening_balance || 0, is_wapu: !!c.is_wapu, npwp: c.npwp || '' }); setEditing(c); };
     const submit = (e) => {
         e.preventDefault();
         put(route('books.customers.update', editing.id), { preserveScroll: true, onSuccess: () => { reset(); setEditing(null); } });
@@ -35,6 +35,14 @@ export default function Customers({ customers, can_manage }) {
                             <label className="label">Saldo Piutang Awal (Rp)</label>
                             <input type="number" step="0.01" className="input" value={data.receivable_balance} onChange={(e) => setData('receivable_balance', e.target.value)} />
                         </div>
+                        <div>
+                            <label className="label">NPWP</label>
+                            <input className="input" value={data.npwp} onChange={(e) => setData('npwp', e.target.value)} placeholder="00.000.000.0-000.000" />
+                        </div>
+                        <label className="flex items-center gap-2 text-sm text-slate-300">
+                            <input type="checkbox" checked={data.is_wapu} onChange={(e) => setData('is_wapu', e.target.checked)} />
+                            Status WAPU (Wajib Pungut PPN)
+                        </label>
                         <div className="flex items-end gap-2">
                             <button type="button" onClick={() => setEditing(null)} className="btn-secondary">Batal</button>
                             <button type="submit" className="btn-primary" disabled={processing}>Simpan</button>
@@ -49,19 +57,23 @@ export default function Customers({ customers, can_manage }) {
                                 <th className="table-header">Kode</th>
                                 <th className="table-header">Customer</th>
                                 <th className="table-header">Kota</th>
+                                <th className="table-header">WAPU</th>
                                 <th className="table-header text-right">Saldo Piutang</th>
                                 <th className="table-header"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {customers.length === 0 && (
-                                <tr><td colSpan={5} className="table-cell text-center text-slate-400">Belum ada customer.</td></tr>
+                                <tr><td colSpan={6} className="table-cell text-center text-slate-400">Belum ada customer.</td></tr>
                             )}
                             {customers.map((c) => (
                                 <tr key={c.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
                                     <td className="table-cell font-mono text-xs">{c.code || <span className="text-slate-500">—</span>}</td>
                                     <td className="table-cell">{c.name}</td>
                                     <td className="table-cell text-slate-400">{c.city || '—'}</td>
+                                    <td className="table-cell">
+                                        {c.is_wapu ? <span className="badge badge-blue">WAPU</span> : <span className="text-slate-600">—</span>}
+                                    </td>
                                     <td className="table-cell text-right font-medium text-emerald-300" title={`Awal ${fmt(c.opening_balance)} + mutasi ${fmt(c.movement)}`}>{fmt(c.current_balance)}</td>
                                     <td className="table-cell whitespace-nowrap">
                                         <Link href={route('books.customers.show', c.id)} className="text-blue-400 hover:text-blue-300 text-xs mr-3">Riwayat</Link>
