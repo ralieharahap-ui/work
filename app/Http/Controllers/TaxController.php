@@ -11,10 +11,10 @@ use Inertia\Response;
 
 class TaxController extends Controller
 {
-    /** Kode akun kontrol PPN (sesuai ChartOfAccountsSeeder). */
-    private const ACC_PPN_KELUARAN = '2-2100';
-    private const ACC_PPN_MASUKAN  = '1-1450';
-    private const ACC_PPN_WAPU     = '1-1400';
+    /** Kode akun kontrol PPN (COA revisi PSAK 2026 — database/data/coa_psak_2026.php). */
+    private const ACC_PPN_KELUARAN = '21401';
+    private const ACC_PPN_MASUKAN  = '11501';
+    private const ACC_PPN_WAPU     = '11507';
 
     /**
      * Kontrol saldo PPN Masukan/Keluaran & clearing PPN Dipungut WAPU.

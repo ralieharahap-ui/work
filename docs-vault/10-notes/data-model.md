@@ -12,7 +12,7 @@ related: ["[[teknis-moc]]", "[[chart-of-accounts]]", "[[jurnal-umum]]", "[[suble
 
 ## Konvensi umum
 - Model memakai `HasUuids` (primary key UUID, bukan auto-increment).
-- Kode akun format `X-XXXX` — lihat [[chart-of-accounts]].
+- Kode akun 5 digit (COA PSAK 2026), akun header ditandai `is_header` — lihat [[chart-of-accounts]].
 - `JournalLine` memakai `$timestamps = false`.
 
 ## Model kunci

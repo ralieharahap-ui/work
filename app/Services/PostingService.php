@@ -59,9 +59,9 @@ class PostingService
             $invoice->organization_id,
             "Penjualan {$invoice->invoice_no}",
             [
-                '1-1200' => ['debit'  => $invoice->total,      'memo' => 'Piutang ' . $invoice->customer->name],
-                '4-4000' => ['credit' => $invoice->subtotal],
-                '2-2100' => ['credit' => $invoice->tax_amount, 'memo' => 'PPN Keluaran'],
+                '11204' => ['debit'  => $invoice->total,      'memo' => 'Piutang ' . $invoice->customer->name],
+                '41106' => ['credit' => $invoice->subtotal],
+                '21401' => ['credit' => $invoice->tax_amount, 'memo' => 'PPN Keluaran'],
             ],
             'invoice', $invoice->id
         );
@@ -69,13 +69,13 @@ class PostingService
 
     public function onPaymentReceived(Invoice $invoice, float $cash): JournalEntry
     {
-        $lines = ['1-1200' => ['credit' => $invoice->total, 'memo' => 'Pelunasan ' . $invoice->invoice_no]];
+        $lines = ['11204' => ['credit' => $invoice->total, 'memo' => 'Pelunasan ' . $invoice->invoice_no]];
 
         if ($invoice->tax_mechanism === 'wapu') {
-            $lines['1-1100'] = ['debit' => $cash];
-            $lines['1-1400'] = ['debit' => $invoice->ppn_dipungut_wapu, 'memo' => 'Menunggu SSP/bukti pungut Wapu'];
+            $lines['11109'] = ['debit' => $cash];
+            $lines['11507'] = ['debit' => $invoice->ppn_dipungut_wapu, 'memo' => 'Menunggu SSP/bukti pungut Wapu'];
         } else {
-            $lines['1-1100'] = ['debit' => $cash];
+            $lines['11109'] = ['debit' => $cash];
         }
 
         return $this->post($invoice->organization_id, "Pelunasan {$invoice->invoice_no}",
@@ -89,8 +89,8 @@ class PostingService
             $invoice->organization_id,
             "Bukti pungut (SSP) {$invoice->invoice_no}",
             [
-                '2-2100' => ['debit'  => $invoice->ppn_dipungut_wapu, 'memo' => 'Tutup utang PPN Keluaran'],
-                '1-1400' => ['credit' => $invoice->ppn_dipungut_wapu],
+                '21401' => ['debit'  => $invoice->ppn_dipungut_wapu, 'memo' => 'Tutup utang PPN Keluaran'],
+                '11507' => ['credit' => $invoice->ppn_dipungut_wapu],
             ],
             'ssp', $invoice->id
         );

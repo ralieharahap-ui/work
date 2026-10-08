@@ -2,44 +2,61 @@ import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useState } from 'react';
 
-const fmt = (n) => new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0));
+const fmt = (n) => {
+    const v = Math.round(Number(n) || 0);
+    const s = new Intl.NumberFormat('id-ID').format(Math.abs(v));
+    return v < 0 ? `(${s})` : s;
+};
 
-function Section({ title, rows, total, totalLabel, accent }) {
+function Group({ label, rows, total }) {
     return (
-        <table className="w-full mb-4">
-            <thead>
-                <tr className="border-b border-slate-700">
-                    <th className="table-header" colSpan={2}>{title}</th>
+        <>
+            <tr><td colSpan={2} className="table-cell pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</td></tr>
+            {rows.length === 0 ? (
+                <tr><td colSpan={2} className="table-cell py-1 pl-5 text-xs text-slate-500">— nihil —</td></tr>
+            ) : rows.map((a) => (
+                <tr key={a.code} className="border-b border-slate-700/40">
+                    <td className="table-cell pl-5">
+                        <span className="font-mono text-xs text-slate-500 mr-2">{a.code}</span>{a.name}
+                    </td>
+                    <td className="table-cell text-right tabular">{fmt(a.amount)}</td>
                 </tr>
-            </thead>
-            <tbody>
-                {rows.map((a) => (
-                    <tr key={a.code} className="border-b border-slate-700/40">
-                        <td className="table-cell">
-                            <span className="font-mono text-xs text-slate-500 mr-2">{a.code}</span>{a.name}
-                        </td>
-                        <td className="table-cell text-right">{fmt(a.amount)}</td>
-                    </tr>
-                ))}
-                <tr className="border-t border-slate-600">
-                    <td className="table-cell font-medium">{totalLabel}</td>
-                    <td className={`table-cell text-right font-bold ${accent}`}>{fmt(total)}</td>
-                </tr>
-            </tbody>
-        </table>
+            ))}
+            <tr className="border-t border-slate-700">
+                <td className="table-cell pl-5 font-medium">Jumlah {label}</td>
+                <td className="table-cell text-right tabular font-semibold">{fmt(total)}</td>
+            </tr>
+        </>
+    );
+}
+
+function TotalRow({ label, value, accent }) {
+    return (
+        <tr className="border-t-2 border-slate-600">
+            <td className="table-cell font-bold text-white">{label}</td>
+            <td className={`table-cell text-right tabular font-bold ${accent}`}>{fmt(value)}</td>
+        </tr>
     );
 }
 
 export default function BalanceSheet({
-    assets, liabilities, equity, net_income,
+    groups, assets = [], liabilities = [], equity = [], net_income = 0, prior_income = 0,
     total_assets, total_liab, total_equity, total_liab_equity, is_balanced, as_of,
 }) {
     const [date, setDate] = useState(as_of);
+    const assetGroups = groups?.assets ?? [{ label: 'Aset', rows: assets, total: total_assets }];
+    const liabGroups  = groups?.liabilities ?? [{ label: 'Liabilitas', rows: liabilities, total: total_liab }];
+    const year = (as_of || '').slice(0, 4);
+    const equityRows = [
+        ...equity,
+        ...(Math.abs(prior_income) > 0.004 ? [{ code: '31301*', name: 'Saldo Laba Tahun-tahun Lalu (belum ditutup)', amount: prior_income }] : []),
+        { code: '31302*', name: `${net_income >= 0 ? 'Laba' : 'Rugi'} Tahun Berjalan ${year}`, amount: net_income },
+    ];
 
     return (
         <>
             <Head title="Neraca" />
-            <AppLayout title="Neraca (Balance Sheet)">
+            <AppLayout title="Laporan Posisi Keuangan (Neraca)">
                 <div className="flex flex-wrap items-center gap-3 mb-4 print:hidden">
                     <div>
                         <label className="label">Per Tanggal</label>
@@ -56,24 +73,32 @@ export default function BalanceSheet({
 
                 <div className="grid lg:grid-cols-2 gap-5">
                     <div className="card">
-                        <h2 className="text-white font-semibold mb-3">AKTIVA</h2>
-                        <Section title="Aset" rows={assets} total={total_assets}
-                            totalLabel="TOTAL AKTIVA" accent="text-blue-300" />
+                        <h2 className="text-white font-semibold mb-1">ASET</h2>
+                        <table className="w-full">
+                            <tbody>
+                                {assetGroups.map((g) => <Group key={g.label} {...g} />)}
+                                <TotalRow label="JUMLAH ASET" value={total_assets} accent="text-blue-300" />
+                            </tbody>
+                        </table>
                     </div>
 
                     <div className="card">
-                        <h2 className="text-white font-semibold mb-3">KEWAJIBAN & MODAL</h2>
-                        <Section title="Kewajiban" rows={liabilities} total={total_liab}
-                            totalLabel="Total Kewajiban" accent="text-amber-300" />
-                        <Section
-                            title="Modal"
-                            rows={[...equity, { code: '—', name: net_income >= 0 ? 'Laba Tahun Berjalan' : 'Rugi Tahun Berjalan', amount: net_income }]}
-                            total={total_equity}
-                            totalLabel="Total Modal" accent="text-emerald-300" />
-                        <div className={`flex items-center justify-between px-4 py-3 rounded-lg ${is_balanced ? 'bg-emerald-900/30' : 'bg-red-900/30'}`}>
-                            <span className="font-semibold text-white">TOTAL KEWAJIBAN & MODAL</span>
-                            <span className={`font-bold ${is_balanced ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(total_liab_equity)}</span>
+                        <h2 className="text-white font-semibold mb-1">LIABILITAS & EKUITAS</h2>
+                        <table className="w-full">
+                            <tbody>
+                                {liabGroups.map((g) => <Group key={g.label} {...g} />)}
+                                <TotalRow label="Jumlah Liabilitas" value={total_liab} accent="text-amber-300" />
+                                <Group label="Ekuitas" rows={equityRows} total={total_equity} />
+                                <TotalRow label="Jumlah Ekuitas" value={total_equity} accent="text-emerald-300" />
+                            </tbody>
+                        </table>
+                        <div className={`flex items-center justify-between px-4 py-3 mt-4 rounded-lg ${is_balanced ? 'bg-emerald-900/30' : 'bg-red-900/30'}`}>
+                            <span className="font-semibold text-white">JUMLAH LIABILITAS & EKUITAS</span>
+                            <span className={`font-bold tabular ${is_balanced ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(total_liab_equity)}</span>
                         </div>
+                        <p className="text-[11px] text-slate-500 mt-2">
+                            * Dihitung otomatis dari akun laba rugi yang belum ditutup (belum ada jurnal penutup ke 31301/31302).
+                        </p>
                     </div>
                 </div>
             </AppLayout>

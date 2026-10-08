@@ -46,7 +46,7 @@ class FixedAssetController extends Controller
             'assets'   => $assets,
             'as_of'    => $asOf,
             'accounts' => Account::where('organization_id', $orgId)
-                ->where('is_active', true)
+                ->postable()
                 ->orderBy('code')
                 ->get(['id', 'code', 'name']),
             'totals' => [

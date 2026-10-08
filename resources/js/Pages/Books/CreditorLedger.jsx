@@ -3,6 +3,7 @@ import AppLayout from '@/Layouts/AppLayout';
 
 const fmt = (n) => new Intl.NumberFormat('id-ID').format(Math.abs(Number(n) || 0));
 const signed = (n) => `${Number(n) < 0 ? '(' : ''}${fmt(n)}${Number(n) < 0 ? ')' : ''}`;
+const CATEGORY_LABEL = { bank: 'Bank', investor: 'Investor Eksternal', investor_internal: 'Investor Internal (Pihak Berelasi)' };
 const tgl = (s) => s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 export default function CreditorLedger({ creditor, opening_balance, rows, current_balance, total_debit, total_credit }) {
@@ -18,13 +19,13 @@ export default function CreditorLedger({ creditor, opening_balance, rows, curren
 
                 <div className="card mb-4 grid sm:grid-cols-4 gap-4">
                     <div><p className="text-slate-400 text-xs">Kreditur</p><p className="text-white font-medium">{creditor.code} — {creditor.name}</p></div>
-                    <div><p className="text-slate-400 text-xs">Kategori</p><p className="text-slate-200 capitalize">{creditor.category}</p></div>
+                    <div><p className="text-slate-400 text-xs">Kategori</p><p className="text-slate-200">{CATEGORY_LABEL[creditor.category] || creditor.category}</p></div>
                     <div><p className="text-slate-400 text-xs">Jatuh Tempo</p><p className="text-slate-200">{tgl(creditor.maturity_date)}</p></div>
                     <div><p className="text-slate-400 text-xs">Saldo Kewajiban Berjalan</p><p className="text-amber-300 font-bold text-lg">{signed(current_balance)}</p></div>
                 </div>
 
                 <div className="card overflow-x-auto">
-                    <p className="text-slate-400 text-sm mb-3">Otomatis dari jurnal yang telah dirilis (Posted) dengan kode bantu = <b>{creditor.code}</b> pada akun Utang Pendanaan.</p>
+                    <p className="text-slate-400 text-sm mb-3">Otomatis dari jurnal yang telah dirilis (Posted) dengan kode bantu = <b>{creditor.code}</b> pada akun pinjaman / hutang pihak berelasi (kelompok pendanaan COA).</p>
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-700">

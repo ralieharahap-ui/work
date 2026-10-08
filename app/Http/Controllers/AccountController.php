@@ -29,25 +29,40 @@ class AccountController extends Controller
             ->map(function ($account) {
                 $debit  = (float) $account->lines->sum('debit');
                 $credit = (float) $account->lines->sum('credit');
-                $net    = $debit - $credit;
 
-                // Tempatkan saldo neto pada kolom sesuai posisi normal akun.
                 return [
+                    'id'             => $account->id,
                     'code'           => $account->code,
+                    'legacy_code'    => $account->legacy_code,
                     'name'           => $account->name,
                     'type'           => $account->type,
                     'account_type'   => $account->account_type,
+                    'fs_group'       => $account->fs_group,
                     'normal_balance' => $account->normal_balance,
                     'report'         => $account->report,
-                    'debit'          => $net > 0 ? $net : 0,
-                    'credit'         => $net < 0 ? -$net : 0,
+                    'is_header'      => (bool) $account->is_header,
+                    'net'            => $debit - $credit,
                 ];
             });
 
+        // Akun header menampilkan subtotal akun detail di bawahnya (awalan kode tanpa nol di belakang).
+        $details = $accounts->where('is_header', false);
+        $accounts = $accounts->map(function ($a) use ($details) {
+            if ($a['is_header']) {
+                $prefix = rtrim($a['code'], '0') ?: $a['code'];
+                $a['net'] = $details->filter(fn ($d) => str_starts_with($d['code'], $prefix))->sum('net');
+            }
+            // Tempatkan saldo neto pada kolom sesuai posisi normal akun.
+            $a['debit']  = $a['net'] > 0 ? $a['net'] : 0;
+            $a['credit'] = $a['net'] < 0 ? -$a['net'] : 0;
+            return $a;
+        })->values();
+        $details = $accounts->where('is_header', false);
+
         return Inertia::render('Books/ChartOfAccounts', [
             'accounts'      => $accounts,
-            'total_debit'   => $accounts->sum('debit'),
-            'total_credit'  => $accounts->sum('credit'),
+            'total_debit'   => $details->sum('debit'),
+            'total_credit'  => $details->sum('credit'),
             'control_accounts' => $this->controlAccounts(),
             'can_manage'    => auth()->user()->hasRole('super_admin'),
             'type_options'  => ['asset', 'liability', 'equity', 'revenue', 'expense'],
@@ -100,41 +115,27 @@ class AccountController extends Controller
             'name'           => 'required|string|max:255',
             'type'           => 'required|in:asset,liability,equity,revenue,expense',
             'account_type'   => 'nullable|string|max:100',
+            'fs_group'       => 'nullable|string|max:100',
             'normal_balance' => 'nullable|in:Db,Kr',
             'report'         => 'nullable|in:NRC,LR',
             'is_active'      => 'boolean',
+            'is_header'      => 'boolean',
         ]);
     }
 
     /**
-     * Referensi Control Account — poin 1.7.
-     * 21 TYPE AKUN dengan posisi normal (Db/Kr) dan pemetaan laporan (NRC / LR).
+     * Referensi Kelompok Akun (Control Account) — diturunkan dari COA revisi PSAK 2026:
+     * [Kelompok laporan (sub laporan), Kelompok akun, Posisi normal, Laporan].
      */
     private function controlAccounts(): array
     {
-        // [Kelompok, TYPE AKUN, Posisi Normal (Db/Kr), Laporan (NRC=Neraca / LR=Laba Rugi)]
-        return [
-            ['AKTIVA',     'Kas',                                  'Db', 'NRC'],
-            ['AKTIVA',     'Kas di Bank',                          'Db', 'NRC'],
-            ['AKTIVA',     'Piutang Usaha',                        'Db', 'NRC'],
-            ['AKTIVA',     'Aset Lancar Lainnya',                  'Db', 'NRC'],
-            ['AKTIVA',     'Persediaan',                           'Db', 'NRC'],
-            ['AKTIVA',     'PPN Masukan',                          'Db', 'NRC'],
-            ['AKTIVA',     'Aset Tetap',                           'Db', 'NRC'],
-            ['AKTIVA',     'Aset Lain-lain',                       'Db', 'NRC'],
-            ['AKTIVA',     'Aset Tetap (Kontra/Akum. Penyusutan)', 'Db', 'NRC'],
-            ['KEWAJIBAN',  'Utang Usaha',                          'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Liabilitas Jangka Pendek Lainnya',     'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Liabilitas Jangka Panjang Lainnya',    'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Kewajiban Pajak',                      'Kr', 'NRC'],
-            ['KEWAJIBAN',  'Liabilitas Lain-lain',                 'Kr', 'NRC'],
-            ['MODAL',      'Equity',                               'Kr', 'NRC'],
-            ['PENDAPATAN', 'Pendapatan Usaha',                     'Kr', 'LR'],
-            ['PENDAPATAN', 'Pendapatan Lain-lain',                 'Kr', 'LR'],
-            ['HPP',        'Harga Pokok Penjualan',                'Db', 'LR'],
-            ['BEBAN',      'Beban Usaha',                          'Db', 'LR'],
-            ['BEBAN',      'Beban Non-operasional',                'Db', 'LR'],
-            ['BEBAN',      'Expences-Perorangan',                  'Db', 'LR'],
-        ];
+        $rows = require database_path('data/coa_psak_2026.php');
+
+        return collect($rows)
+            ->reject(fn ($r) => $r[7])
+            ->map(fn ($r) => [$r[6], $r[2], $r[4], $r[5]])
+            ->unique(fn ($r) => $r[1] . '|' . $r[2])
+            ->values()
+            ->all();
     }
 }

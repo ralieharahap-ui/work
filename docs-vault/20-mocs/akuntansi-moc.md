@@ -13,7 +13,7 @@ related: ["[[Home]]"]
 Inti akuntansi aplikasi (menu **Akuntansi** & **Laporan**). Berbasis double-entry, jurnal yang di-*post* menjadi sumber semua laporan & subledger.
 
 ## Master & pencatatan
-- [[chart-of-accounts]] — daftar akun (COA), format kode `X-XXXX`
+- [[chart-of-accounts]] — daftar akun (COA revisi PSAK 2026, kode 5 digit)
 - [[jurnal-umum]] — pencatatan jurnal umum (draft → posted)
 - [[multi-level-approval]] — alur persetujuan jurnal berjenjang
 - [[buku-besar]] — buku besar & neraca lajur per akun

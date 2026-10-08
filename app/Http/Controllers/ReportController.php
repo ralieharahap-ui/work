@@ -5,19 +5,36 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\JournalLine;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Laporan keuangan. Penyajian mengikuti PSAK 201 dengan COA revisi PSAK 2026:
+ * Pendapatan → HPP (Laba Bruto) → Beban Operasional (Laba Usaha) → Pendapatan & Beban Lainnya
+ * (Laba Sebelum Pajak) → Pajak Penghasilan (Laba Bersih). Semua dari jurnal Posted.
+ */
 class ReportController extends Controller
 {
+    /** Bagian Laba Rugi: [kunci, label, sisi saldo (revenue = kredit−debet)]. */
+    private const PL_SECTIONS = [
+        ['pendapatan',        'Pendapatan',                 'revenue'],
+        ['hpp',               'Beban Pokok Pendapatan',     'expense'],
+        ['beban_operasional', 'Beban Operasional',          'expense'],
+        ['pendapatan_lain',   'Pendapatan Lainnya',         'revenue'],
+        ['beban_lain',        'Beban Keuangan & Lainnya',   'expense'],
+        ['pajak',             'Beban Pajak Penghasilan',    'expense'],
+    ];
+
     public function trialBalance(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
         $asOf  = $request->get('as_of', today()->toDateString());
 
         $accounts = Account::where('organization_id', $orgId)
-            ->where('is_active', true)
+            ->postable()
             ->whereNull('parent_id')
+            ->orderBy('code')
             ->with(['lines' => fn($q) => $q->whereHas('journalEntry',
                 fn($q) => $q->where('is_posted', true)->where('entry_date', '<=', $asOf)
             )])
@@ -44,17 +61,19 @@ class ReportController extends Controller
 
     public function profitLoss(Request $request): Response
     {
-        $orgId     = auth()->user()->organization_id;
-        $dateFrom  = $request->get('from', today()->startOfMonth()->toDateString());
-        $dateTo    = $request->get('to', today()->toDateString());
+        $orgId    = auth()->user()->organization_id;
+        $dateFrom = $request->get('from', today()->startOfMonth()->toDateString());
+        $dateTo   = $request->get('to', today()->toDateString());
 
-        $revenue = $this->sumType($orgId, 'revenue', $dateFrom, $dateTo);
-        $expense = $this->sumType($orgId, 'expense', $dateFrom, $dateTo);
+        $pl = $this->profitLossData($orgId, $dateFrom, $dateTo);
 
         return Inertia::render('Books/ProfitLoss', [
-            'revenue'      => $revenue,
-            'expense'      => $expense,
-            'net'          => $revenue['total'] - $expense['total'],
+            'sections'     => $pl['sections'],
+            'summary'      => $pl['summary'],
+            // Ringkasan lama tetap dikirim (kompatibel).
+            'revenue'      => $pl['revenue'],
+            'expense'      => $pl['expense'],
+            'net'          => $pl['summary']['laba_bersih'],
             'period_from'  => $dateFrom,
             'period_to'    => $dateTo,
         ]);
@@ -122,52 +141,70 @@ class ReportController extends Controller
     }
 
     /**
-     * Neraca / Balance Sheet (1.4).
-     * Aktiva vs Kewajiban + Modal, termasuk laba tahun berjalan.
+     * Laporan Posisi Keuangan (Neraca) — aset & liabilitas dipisah lancar/tidak lancar.
+     * Laba yang belum ditutup dipisah: saldo laba tahun-tahun lalu vs laba (rugi) tahun berjalan.
      */
     public function balanceSheet(Request $request): Response
     {
         $orgId = auth()->user()->organization_id;
         $asOf  = $request->get('as_of', today()->toDateString());
 
-        $group = function (array $types) use ($orgId, $asOf) {
+        $rows = function (string $type) use ($orgId, $asOf): Collection {
             return Account::where('organization_id', $orgId)
                 ->where('is_active', true)
-                ->whereIn('type', $types)
+                ->where('type', $type)
                 ->with(['lines' => fn ($q) => $q->whereHas('journalEntry',
                     fn ($q) => $q->where('is_posted', true)->where('entry_date', '<=', $asOf)
                 )])
                 ->orderBy('code')
                 ->get()
-                ->map(function ($a) use ($types) {
+                ->map(function ($a) use ($type) {
                     $debit  = (float) $a->lines->sum('debit');
                     $credit = (float) $a->lines->sum('credit');
-                    // Aset = saldo debet; kewajiban & modal = saldo kredit.
-                    $amount = in_array('asset', $types, true) ? $debit - $credit : $credit - $debit;
-                    return ['code' => $a->code, 'name' => $a->name, 'amount' => $amount];
+                    // Aset = saldo debet; liabilitas & ekuitas = saldo kredit (akun kontra otomatis negatif).
+                    $amount = $type === 'asset' ? $debit - $credit : $credit - $debit;
+                    return ['code' => $a->code, 'name' => $a->name, 'fs_group' => $a->fs_group, 'amount' => $amount];
                 })
                 ->filter(fn ($r) => abs($r['amount']) > 0.004)
                 ->values();
         };
 
-        $assets      = $group(['asset']);
-        $liabilities = $group(['liability']);
-        $equity      = $group(['equity']);
+        $assets      = $rows('asset');
+        $liabilities = $rows('liability');
+        $equity      = $rows('equity');
 
-        // Laba tahun berjalan (pendapatan − beban) s/d asOf.
-        $revenue = $this->sumType($orgId, 'revenue', '1900-01-01', $asOf);
-        $expense = $this->sumType($orgId, 'expense', '1900-01-01', $asOf);
-        $netIncome = $revenue['total'] - $expense['total'];
+        $yearStart   = \Carbon\Carbon::parse($asOf)->startOfYear()->toDateString();
+        $priorEnd    = \Carbon\Carbon::parse($yearStart)->subDay()->toDateString();
+        $netIncome   = $this->profitLossData($orgId, $yearStart, $asOf)['summary']['laba_bersih'];
+        $priorIncome = $this->profitLossData($orgId, '1900-01-01', $priorEnd)['summary']['laba_bersih'];
+
+        $split = fn (Collection $c, string $currentGroup, string $currentPrefix) => [
+            $c->filter(fn ($r) => $r['fs_group'] === $currentGroup || (! $r['fs_group'] && str_starts_with($r['code'], $currentPrefix)))->values(),
+            $c->reject(fn ($r) => $r['fs_group'] === $currentGroup || (! $r['fs_group'] && str_starts_with($r['code'], $currentPrefix)))->values(),
+        ];
+        [$currentAssets, $nonCurrentAssets] = $split($assets, 'Aset Lancar', '11');
+        [$currentLiab, $nonCurrentLiab]     = $split($liabilities, 'Liabilitas Lancar', '21');
 
         $totalAssets = $assets->sum('amount');
         $totalLiab   = $liabilities->sum('amount');
-        $totalEquity = $equity->sum('amount') + $netIncome;
+        $totalEquity = $equity->sum('amount') + $priorIncome + $netIncome;
 
         return Inertia::render('Books/BalanceSheet', [
+            'groups' => [
+                'assets'      => [
+                    ['label' => 'Aset Lancar', 'rows' => $currentAssets, 'total' => $currentAssets->sum('amount')],
+                    ['label' => 'Aset Tidak Lancar', 'rows' => $nonCurrentAssets, 'total' => $nonCurrentAssets->sum('amount')],
+                ],
+                'liabilities' => [
+                    ['label' => 'Liabilitas Jangka Pendek', 'rows' => $currentLiab, 'total' => $currentLiab->sum('amount')],
+                    ['label' => 'Liabilitas Jangka Panjang', 'rows' => $nonCurrentLiab, 'total' => $nonCurrentLiab->sum('amount')],
+                ],
+            ],
             'assets'          => $assets,
             'liabilities'     => $liabilities,
             'equity'          => $equity,
             'net_income'      => $netIncome,
+            'prior_income'    => $priorIncome,
             'total_assets'    => $totalAssets,
             'total_liab'      => $totalLiab,
             'total_equity'    => $totalEquity,
@@ -179,7 +216,8 @@ class ReportController extends Controller
 
     /**
      * Rekap Peredaran Bruto (1.10).
-     * Peredaran bruto (pendapatan usaha) per bulan × tarif PPh Final UMKM 0,50%.
+     * Peredaran bruto = pendapatan usaha (kelompok 4xxxx, termasuk kontra pendapatan) per bulan
+     * × tarif PPh Final UMKM 0,50%. Pendapatan lainnya (bunga, laba penjualan aset) tidak dihitung.
      */
     public function grossTurnover(Request $request): Response
     {
@@ -189,6 +227,8 @@ class ReportController extends Controller
 
         $revenueAccountIds = Account::where('organization_id', $orgId)
             ->where('type', 'revenue')
+            ->get()
+            ->filter(fn ($a) => self::plSection($a) === 'pendapatan')
             ->pluck('id');
 
         $months = [];
@@ -227,24 +267,78 @@ class ReportController extends Controller
         ]);
     }
 
-    private function sumType(string $orgId, string $type, string $from, string $to): array
+    /** Bagian Laba Rugi sebuah akun — dari sub laporan COA, cadangan dari digit awal kode. */
+    public static function plSection(Account $a): string
+    {
+        $g = strtolower((string) $a->fs_group);
+        return match (true) {
+            $g === 'pendapatan'                          => 'pendapatan',
+            str_starts_with($g, 'hpp')                   => 'hpp',
+            $g === 'beban operasional'                   => 'beban_operasional',
+            $g === 'pendapatan lainnya'                  => 'pendapatan_lain',
+            str_starts_with($g, 'beban keuangan')        => 'beban_lain',
+            $g === 'pajak penghasilan'                   => 'pajak',
+            default => match ($a->code[0] ?? '') {
+                '4' => 'pendapatan', '5' => 'hpp', '6' => 'beban_operasional',
+                '7' => 'pendapatan_lain', '8' => 'beban_lain', '9' => 'pajak',
+                default => $a->type === 'revenue' ? 'pendapatan' : 'beban_operasional',
+            },
+        };
+    }
+
+    /** Hitung Laba Rugi berjenjang untuk satu periode. */
+    private function profitLossData(string $orgId, string $from, string $to): array
     {
         $accounts = Account::where('organization_id', $orgId)
-            ->where('type', $type)
+            ->whereIn('type', ['revenue', 'expense'])
             ->where('is_active', true)
-            ->with(['lines' => fn($q) => $q->whereHas('journalEntry',
-                fn($q) => $q->where('is_posted', true)
-                             ->whereBetween('entry_date', [$from, $to])
+            ->with(['lines' => fn ($q) => $q->whereHas('journalEntry',
+                fn ($q) => $q->where('is_posted', true)->whereBetween('entry_date', [$from, $to])
             )])
-            ->get()
-            ->map(fn($a) => [
-                'code'   => $a->code,
-                'name'   => $a->name,
-                'amount' => $type === 'revenue'
-                    ? $a->lines->sum('credit') - $a->lines->sum('debit')
-                    : $a->lines->sum('debit')  - $a->lines->sum('credit'),
-            ]);
+            ->orderBy('code')
+            ->get();
 
-        return ['accounts' => $accounts, 'total' => $accounts->sum('amount')];
+        $sections = collect(self::PL_SECTIONS)->map(function ($s) use ($accounts) {
+            [$key, $label, $side] = $s;
+            $rows = $accounts->filter(fn ($a) => self::plSection($a) === $key)
+                ->map(fn ($a) => [
+                    'code'   => $a->code,
+                    'name'   => $a->name,
+                    'amount' => $side === 'revenue'
+                        ? (float) $a->lines->sum('credit') - (float) $a->lines->sum('debit')
+                        : (float) $a->lines->sum('debit') - (float) $a->lines->sum('credit'),
+                ])
+                ->filter(fn ($r) => abs($r['amount']) > 0.004)
+                ->values();
+            return ['key' => $key, 'label' => $label, 'accounts' => $rows, 'total' => $rows->sum('amount')];
+        })->keyBy('key');
+
+        $t = fn ($k) => (float) $sections[$k]['total'];
+        $labaBruto  = $t('pendapatan') - $t('hpp');
+        $labaUsaha  = $labaBruto - $t('beban_operasional');
+        $labaPajak  = $labaUsaha + $t('pendapatan_lain') - $t('beban_lain');
+        $labaBersih = $labaPajak - $t('pajak');
+
+        $byType = fn ($type) => $accounts->where('type', $type)->map(fn ($a) => [
+            'code'   => $a->code,
+            'name'   => $a->name,
+            'amount' => $type === 'revenue'
+                ? (float) $a->lines->sum('credit') - (float) $a->lines->sum('debit')
+                : (float) $a->lines->sum('debit') - (float) $a->lines->sum('credit'),
+        ])->filter(fn ($r) => abs($r['amount']) > 0.004)->values();
+        $revenue = $byType('revenue');
+        $expense = $byType('expense');
+
+        return [
+            'sections' => $sections->values(),
+            'summary'  => [
+                'laba_bruto'         => $labaBruto,
+                'laba_usaha'         => $labaUsaha,
+                'laba_sebelum_pajak' => $labaPajak,
+                'laba_bersih'        => $labaBersih,
+            ],
+            'revenue'  => ['accounts' => $revenue, 'total' => $revenue->sum('amount')],
+            'expense'  => ['accounts' => $expense, 'total' => $expense->sum('amount')],
+        ];
     }
 }

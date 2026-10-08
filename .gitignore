@@ -26,3 +26,8 @@ database/database.sqlite
 
 # Dump SQL master (mengandung hash password & token — jangan pernah masuk repo publik)
 /deploy/database/*.sql
+
+# Sertifikat & private key SSL — JANGAN di-commit
+/deploy/sertificte web/
+*.key
+*.pem

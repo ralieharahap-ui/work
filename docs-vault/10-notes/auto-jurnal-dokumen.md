@@ -18,7 +18,7 @@ Saat dokumen **Perjalanan Dinas (PD)** atau **Reimbursement (RB)** dirilis (stat
 - ID jurnal hasil auto-post disimpan balik ke `meta.extra.posted_journal_id` untuk **mencegah duplikasi** jurnal jika dokumen diproses ulang.
 
 ## Contoh kasus nyata
-Reimbursement atas nama Anton sebesar Rp5.000.000 → **Debit Beban** / **Kredit Utang Pihak Berelasi** (akun `2-2400`, ditambahkan khusus untuk kebutuhan ini — lihat [[chart-of-accounts]]).
+Reimbursement atas nama Anton sebesar Rp5.000.000 → **Debit Beban** / **Kredit Utang Pihak Berelasi** (sejak COA PSAK 2026: akun `21303` Hutang kepada Direksi / `21301` Hutang Pihak Berelasi — lihat [[chart-of-accounts]]).
 
 ## Item biaya
 PD dan Reimbursement mendukung **rincian item biaya lebih dari satu (>1)** dalam satu dokumen (tabel item), dijumlahkan sebagai total jurnal.

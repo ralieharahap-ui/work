@@ -78,7 +78,7 @@ class JournalController extends Controller
 
         return Inertia::render('Books/Journal', [
             'accounts' => Account::where('organization_id', $orgId)
-                ->where('is_active', true)
+                ->postable()
                 ->orderBy('code')
                 ->get(['id', 'code', 'name', 'account_type', 'normal_balance', 'report', 'type']),
             'entries'       => $entries,
@@ -283,6 +283,17 @@ class JournalController extends Controller
             'documents.*'        => 'file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
         ]);
 
+        // Posting hanya ke akun detail aktif milik organisasi ini (bukan akun header COA).
+        $ids     = collect($validated['lines'])->pluck('account_id')->unique();
+        $allowed = Account::where('organization_id', auth()->user()->organization_id)
+            ->postable()->whereIn('id', $ids)->pluck('id')->all();
+        $bad = collect($validated['lines'])->keys()->filter(fn ($i) => ! in_array($validated['lines'][$i]['account_id'], $allowed, true));
+        if ($bad->isNotEmpty()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(
+                $bad->mapWithKeys(fn ($i) => ["lines.$i.account_id" => 'Akun tidak dapat dipakai posting (akun header/nonaktif).'])->all()
+            );
+        }
+
         $validated['lines'] = collect($validated['lines'])->map(fn ($l) => [
             ...$l,
             'debit'  => (float) ($l['debit'] ?? 0),
@@ -347,7 +358,7 @@ class JournalController extends Controller
             ->where('is_active', true)
             ->orderBy('code')
             ->get(['code', 'name', 'category'])
-            ->map(fn ($c) => ['code' => $c->code, 'label' => $c->code . ' — ' . $c->name . ' (Kreditur ' . ucfirst($c->category) . ')']);
+            ->map(fn ($c) => ['code' => $c->code, 'label' => $c->code . ' — ' . $c->name . ' (Kreditur ' . (\App\Models\FundingCreditor::CATEGORIES[$c->category] ?? ucfirst($c->category)) . ')']);
 
         return $vendors->concat($customers)->concat($creditors)->values()->all();
     }

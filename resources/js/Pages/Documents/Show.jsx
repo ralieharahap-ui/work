@@ -144,7 +144,7 @@ function Footer({ company, code }) {
     );
 }
 
-export default function DocumentsShow({ document, config, company, statuses, can_release, can_review = false, can_edit = false, comments = [] }) {
+export default function DocumentsShow({ document, config, company, statuses, can_release, can_review = false, can_approve = false, can_edit = false, comments = [] }) {
     const m = document.meta || {};
     const title = TITLES[document.type] || (config.label || '').toUpperCase();
     const total = num(m.amounts?.total);
@@ -154,16 +154,25 @@ export default function DocumentsShow({ document, config, company, statuses, can
 
     const setStatus = (s) => router.patch(route('documents.status', document.id), { status: s }, { preserveScroll: true });
 
-    // QR otomatis saat surat resmi dirilis (di bawah label INTERNAL/EKSTERNAL).
+    // QR verifikasi: muncul setelah ditandatangani, mengarah ke halaman hierarki publik.
+    // Surat resmi lama (dirilis sebelum ada token) tetap memakai QR teks seperti sebelumnya.
     const [qr, setQr] = useState(null);
+    const showVerifyQr = !!document.verify_url && !!document.signed_at && status !== 'cancelled';
     useEffect(() => {
-        if (isSurat && status === 'released') {
-            const payload = `${company.name}\nNomor: ${document.number}\nKode: ${code}\nStatus: RELEASED`;
-            QRCode.toDataURL(payload, { margin: 1, width: 240 }).then(setQr).catch(() => setQr(null));
-        } else {
-            setQr(null);
-        }
-    }, [isSurat, status, document.number, code, company.name]);
+        let payload = null;
+        if (showVerifyQr) payload = document.verify_url;
+        else if (isSurat && status === 'released') payload = `${company.name}\nNomor: ${document.number}\nKode: ${code}\nStatus: RELEASED`;
+
+        if (payload) QRCode.toDataURL(payload, { margin: 1, width: 240 }).then(setQr).catch(() => setQr(null));
+        else setQr(null);
+    }, [showVerifyQr, document.verify_url, isSurat, status, document.number, code, company.name]);
+
+    const endorse = (step) => router.post(route('documents.endorse', document.id), { step }, { preserveScroll: true });
+    const qrImg = qr && (
+        <a href={showVerifyQr ? document.verify_url : undefined} target="_blank" rel="noreferrer" title="Scan untuk verifikasi keabsahan dokumen">
+            <img src={qr} alt="QR verifikasi" className="w-20 h-20 object-contain ml-auto" />
+        </a>
+    );
 
     // Tanda tangan digital (surat resmi): klik Tandatangani → unggah gambar ttd (dikompres).
     const sigInputRef = useRef(null);
@@ -223,8 +232,17 @@ export default function DocumentsShow({ document, config, company, statuses, can
                     )}
                     {document.released_by && <span className="text-xs text-slate-400">Dirilis oleh {document.released_by}</span>}
                     <div className="flex-1" />
+                    {document.attachment_url && (
+                        <a href={document.attachment_url} target="_blank" rel="noreferrer" className="btn-secondary" title={document.attachment_name}>📎 Lampiran</a>
+                    )}
                     {can_edit && (
                         <Link href={route('documents.edit', document.id)} className="btn-secondary">✏️ Edit Draft</Link>
+                    )}
+                    {can_review && status === 'on_review' && !document.reviewed_at && (
+                        <button onClick={() => endorse('review')} className="btn-secondary">👁️ Tandai Direview</button>
+                    )}
+                    {can_approve && status === 'on_review' && !document.approved_at && (
+                        <button onClick={() => endorse('approve')} className="btn-secondary">👍 Setujui</button>
                     )}
                     {can_release && status !== 'signed' && <button onClick={onSignClick} className="btn-secondary">✍️ Tandatangani</button>}
                     {can_release && status !== 'released' && <button onClick={() => setStatus('released')} className="btn-primary">✅ Rilis</button>}
@@ -262,7 +280,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                                     <span className="border-2 border-slate-800 px-3 py-1 font-bold tracking-wider">
                                         {(m.extra?.scope || 'eksternal') === 'internal' ? 'INTERNAL' : 'EKSTERNAL'}
                                     </span>
-                                    {qr && <img src={qr} alt="QR verifikasi" className="w-24 h-24 object-contain" />}
+                                    {qrImg}
                                 </div>
                             </div>
                             {/* BODY 2 — kepada / dari (sedikit lebih longgar dari body 1) */}
@@ -291,6 +309,7 @@ export default function DocumentsShow({ document, config, company, statuses, can
                             <div className="text-right text-sm text-slate-600">
                                 <p>Tanggal: {tgl(document.doc_date)}</p>
                                 {m.extra?.jatuh_tempo && <p>Jatuh Tempo: {tgl(m.extra.jatuh_tempo)}</p>}
+                                {qrImg && <div className="mt-1">{qrImg}</div>}
                             </div>
                         </div>
                     )}

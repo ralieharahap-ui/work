@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 
 export default function Login() {
     const form = useForm({ email: '', password: '', remember: false });
@@ -72,10 +72,7 @@ export default function Login() {
                     </div>
 
                     <div className="mt-4 text-center text-sm">
-                        <span className="text-slate-500">Belum punya akun? </span>
-                        <Link href={route('register')} className="text-blue-400 hover:text-blue-300 font-medium">
-                            Daftar sekarang
-                        </Link>
+                        <span className="text-slate-500">Belum punya akun? Hubungi Super Admin untuk dibuatkan.</span>
                     </div>
 
                     {import.meta.env.DEV && (

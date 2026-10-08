@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Token warna netral (dipakai palet `slate` & `white` di tailwind.config.js) ──
+   :root            = tema gelap asli (nilai identik dengan palet sebelumnya)
+   .theme-light     = tema terang (desain dashboard baru) — skala dibalik
+   .theme-native    = kembali ke nilai asli, untuk bagian yang sejak awal didesain
+                      terang di atas palet asli (lembar cetak dokumen, modul Tugas, verifikasi QR) */
+:root,
+.theme-native,
+.theme-light .print-sheet {
+    --slate-50: 248 251 252;
+    --slate-100: 241 246 249;
+    --slate-200: 225 235 239;
+    --slate-300: 203 218 225;
+    --slate-400: 148 172 184;
+    --slate-500: 96 125 138;
+    --slate-600: 68 93 106;
+    --slate-700: 48 72 85;
+    --slate-800: 26 45 55;
+    --slate-900: 13 28 38;
+    --slate-950: 3 11 17;
+    --c-white: 255 255 255;
+}
+
+.theme-light {
+    color-scheme: light;
+    --slate-50: 2 6 23;
+    --slate-100: 15 23 42;
+    --slate-200: 30 41 59;
+    --slate-300: 51 65 85;
+    --slate-400: 84 101 122;
+    --slate-500: 100 116 139;
+    --slate-600: 148 163 184;
+    --slate-700: 226 232 240;
+    --slate-800: 255 255 255;
+    --slate-900: 244 247 251;
+    --slate-950: 255 255 255;
+    --c-white: 15 23 42;
+}
+
 @layer base {
     * {
         @apply border-slate-700/70;
@@ -307,3 +345,77 @@
     .gep-marker, .gep-marker-shadow, .gep-route { animation: none !important; }
     .gep-marker:hover { transform: scale(1.08); }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Tema terang (desain dashboard baru). Hanya mengubah tampilan — kelas,
+   struktur & perilaku halaman tidak disentuh.
+   ════════════════════════════════════════════════════════════════════ */
+.theme-light body { background-color: #f4f7fb; }
+
+/* Kartu putih bersih dengan bayangan lembut */
+.theme-light .card {
+    background-color: #fff;
+    border-color: #e7ecf2;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 4px 14px rgb(16 24 40 / .04);
+    backdrop-filter: none;
+}
+.theme-light .card-hover:hover { border-color: #d6e0ea; box-shadow: 0 10px 28px -10px rgb(16 24 40 / .18); }
+.theme-light .shadow-card { box-shadow: 0 1px 2px rgb(16 24 40 / .05), 0 4px 14px rgb(16 24 40 / .05); }
+.theme-light .shadow-card-hover,
+.theme-light .hover\:shadow-card-hover:hover { box-shadow: 0 10px 28px -10px rgb(16 24 40 / .18); }
+
+/* Form */
+.theme-light .input { background-color: #fff; border-color: #dbe3ec; }
+.theme-light .input:hover { border-color: #c5d2df; }
+.theme-light .input:focus { background-color: #fff; }
+
+/* Tombol: teks di atas warna aksen tetap putih */
+.theme-light .btn-primary {
+    color: #fff;
+    background-image: linear-gradient(135deg, theme('colors.brand.500'), theme('colors.brand.600'));
+    box-shadow: 0 6px 14px -6px rgb(15 140 189 / .55);
+}
+.theme-light .btn-primary:hover { background-image: linear-gradient(135deg, theme('colors.brand.400'), theme('colors.brand.500')); }
+.theme-light .btn-danger { color: #fff; }
+.theme-light .btn-secondary {
+    background-color: #fff;
+    color: theme('colors.slate.300');
+    border: 1px solid #dbe3ec;
+}
+.theme-light .btn-secondary:hover { background-color: #f1f5f9; }
+.theme-light .btn-ghost:hover { background-color: #eef3f8; }
+
+.theme-light .text-white:is(
+    [class*="bg-blue-"], [class*="bg-brand-"], [class*="bg-emerald-"], [class*="bg-green-"],
+    [class*="bg-red-"], [class*="bg-rose-"], [class*="bg-amber-"], [class*="bg-orange-"],
+    [class*="bg-sky-"], [class*="bg-purple-"], [class*="bg-indigo-"], [class*="bg-teal-"],
+    [class*="bg-cyan-"], [class*="bg-black"], [class*="bg-gradient-"], [class*="from-"]
+) { color: #fff; }
+
+/* Badge versi terang */
+.theme-light .badge-green  { background-color: #ecfdf5; color: #047857; --tw-ring-color: #a7f3d0; }
+.theme-light .badge-red    { background-color: #fef2f2; color: #b91c1c; --tw-ring-color: #fecaca; }
+.theme-light .badge-blue   { background-color: #ecf9fe; color: #0a729e; --tw-ring-color: #ace3f6; }
+.theme-light .badge-amber  { background-color: #fffbeb; color: #b45309; --tw-ring-color: #fde68a; }
+.theme-light .badge-slate  { background-color: #f1f5f9; color: #475569; --tw-ring-color: #e2e8f0; }
+.theme-light .badge-purple { background-color: #f5f3ff; color: #6d28d9; --tw-ring-color: #ddd6fe; }
+
+/* Garis pemisah yang di tema gelap memakai slate-800/900 tetap terlihat */
+.theme-light :is([class*="border-slate-800"], [class*="border-slate-900"], [class*="border-slate-950"]):not(.theme-native *):not(.print-sheet *) {
+    border-color: #e9eef4;
+}
+
+/* Peta (Leaflet) */
+.theme-light .leaflet-container { background: #e8eef4; }
+.theme-light .leaflet-popup-content-wrapper { box-shadow: 0 10px 28px -8px rgb(16 24 40 / .25); }
+.theme-light .leaflet-popup-content .font-bold,
+.theme-light .leaflet-bar a:hover { color: rgb(var(--c-white)); }
+.theme-light .leaflet-control-attribution { background: rgb(255 255 255 / .85) !important; }
+.theme-light .leaflet-tooltip.gep-tooltip {
+    background: rgb(255 255 255 / .98);
+    border-color: #dbe3ec;
+    box-shadow: 0 12px 28px -8px rgb(16 24 40 / .25);
+}
+.theme-light .gep-tip-title { color: rgb(var(--c-white)); }
+.theme-light .gep-tip-cta { color: theme('colors.brand.600'); }

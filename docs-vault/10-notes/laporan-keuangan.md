@@ -21,3 +21,10 @@ Grup menu **Laporan**. Controller: `ReportController`. Halaman: `resources/js/Pa
 
 ## Aturan dasar
 Semua laporan **hanya membaca jurnal dengan `is_posted = true`** (jurnal draft/pending tidak ikut dihitung) — lihat [[jurnal-umum]].
+
+## Penyajian PSAK 201 (sejak COA revisi 2026-10-08)
+Bagian ditentukan dari `fs_group` akun (sub laporan COA), cadangan dari digit awal kode — lihat [[chart-of-accounts]].
+- **Laba Rugi bertahap**: Pendapatan (4) − Beban Pokok Pendapatan (5) = **Laba Bruto**; − Beban Operasional (6) = **Laba Usaha**; + Pendapatan Lainnya (7) − Beban Keuangan & Lainnya (8) = **Laba Sebelum Pajak**; − Pajak Penghasilan (9) = **Laba Bersih**.
+- **Neraca**: Aset Lancar / Tidak Lancar, Liabilitas Jangka Pendek / Panjang, Ekuitas. Laba yang belum ditutup dipisah: *Saldo Laba tahun-tahun lalu* vs *Laba (Rugi) Tahun Berjalan* (dulu dicampur sejak awal pencatatan). Akun kontra (akumulasi penyusutan, CKPN, dividen, retur penjualan) otomatis mengurangi.
+- **Peredaran Bruto** & KPI penjualan dashboard: hanya pendapatan usaha (4xxxx); pendapatan lainnya (bunga, laba penjualan aset) tidak lagi ikut dihitung.
+- **Neraca Saldo**: hanya akun detail (header tidak ikut).

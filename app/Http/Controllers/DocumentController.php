@@ -8,6 +8,8 @@ use App\Models\JournalEntry;
 use App\Models\PalmOilSource;
 use App\Models\UnloadingPoint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -196,6 +198,7 @@ class DocumentController extends Controller
                 'notes'    => $document->notes,
                 'ref_type' => $document->ref_type,
                 'ref_id'   => $document->ref_id,
+                'attachment_name' => $document->attachment_name,
             ],
         ]);
     }
@@ -211,12 +214,17 @@ class DocumentController extends Controller
         abort_unless($this->canReview(), 403, 'Hanya Reviewer ke atas yang dapat menyunting dokumen.');
         abort_unless($this->isEditable($document), 403, 'Dokumen yang sudah ditandatangani/dirilis tidak dapat disunting.');
 
+        $this->decodeMeta($request);
+
         $validated = $request->validate([
             'doc_date'    => 'required|date',
             'meta'        => 'required|array',
             'notes'       => 'nullable|string',
             'edit_reason' => 'nullable|string|max:500',
+            'attachment'  => self::ATTACHMENT_RULE,
         ]);
+
+        $this->storeAttachment($request, $document);
 
         $document->update([
             'doc_date'       => $validated['doc_date'],
@@ -278,7 +286,7 @@ class DocumentController extends Controller
         // Dokumen yang otomatis membuat jurnal saat dirilis butuh daftar akun.
         if (in_array($type, ['perjalanan_dinas', 'reimbursement'], true)) {
             $prefill['accounts'] = \App\Models\Account::where('organization_id', $orgId)
-                ->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
+                ->postable()->orderBy('code')->get(['id', 'code', 'name']);
         }
 
         return $prefill;
@@ -289,13 +297,16 @@ class DocumentController extends Controller
         $orgId = auth()->user()->organization_id;
         $types = $this->types();
 
+        $this->decodeMeta($request);
+
         $validated = $request->validate([
-            'type'      => ['required', Rule::in(array_keys(array_filter($types, fn ($t) => $t['active'])))],
-            'doc_date'  => 'required|date',
-            'meta'      => 'required|array',
-            'notes'     => 'nullable|string',
-            'ref_type'  => 'nullable|string',
-            'ref_id'    => 'nullable|string',
+            'type'       => ['required', Rule::in(array_keys(array_filter($types, fn ($t) => $t['active'])))],
+            'doc_date'   => 'required|date',
+            'meta'       => 'required|array',
+            'notes'      => 'nullable|string',
+            'ref_type'   => 'nullable|string',
+            'ref_id'     => 'nullable|string',
+            'attachment' => self::ATTACHMENT_RULE,
         ]);
 
         $document = Document::create([
@@ -311,8 +322,122 @@ class DocumentController extends Controller
             'notes'           => $validated['notes'] ?? null,
         ]);
 
+        if ($this->storeAttachment($request, $document)) {
+            $document->save();
+        }
+
         return redirect()->route('documents.show', $document->id)
             ->with('success', 'Dokumen ' . $document->number . ' berhasil dibuat');
+    }
+
+    private const ATTACHMENT_RULE = 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx';
+
+    /** Form ber-lampiran dikirim multipart; meta dikirim sebagai JSON agar tipe data utuh. */
+    private function decodeMeta(Request $request): void
+    {
+        if (is_string($request->input('meta'))) {
+            $request->merge(['meta' => json_decode($request->input('meta'), true)]);
+        }
+    }
+
+    /** Simpan lampiran baru (menggantikan lampiran lama). Belum di-save ke DB. */
+    private function storeAttachment(Request $request, Document $document): bool
+    {
+        if (! $request->hasFile('attachment')) {
+            return false;
+        }
+
+        $file = $request->file('attachment');
+        $old  = $document->attachment_path;
+
+        $document->attachment_path = $file->store('document-attachments/' . $document->id, 'public');
+        $document->attachment_name = $file->getClientOriginalName();
+
+        if ($old) {
+            Storage::disk('public')->delete($old);
+        }
+
+        return true;
+    }
+
+    /** Hanya pemegang role approval / super_admin yang boleh menyetujui dokumen. */
+    private function canApprove(): bool
+    {
+        return auth()->user()->hasAnyRole(['approval', 'super_admin']);
+    }
+
+    /**
+     * Catat tahapan hierarki (review / approval) tanpa mengubah status dokumen.
+     */
+    public function endorse(Request $request, Document $document)
+    {
+        abort_unless($document->organization_id === auth()->user()->organization_id, 403);
+
+        $step = $request->validate(['step' => 'required|in:review,approve'])['step'];
+
+        if ($step === 'review') {
+            abort_unless($this->canReview(), 403, 'Hanya Reviewer ke atas yang dapat mereview dokumen.');
+            $document->update(['reviewed_by' => auth()->id(), 'reviewed_at' => now()]);
+            $label = 'Dokumen telah direview.';
+        } else {
+            abort_unless($this->canApprove(), 403, 'Hanya Approval / Super Admin yang dapat menyetujui dokumen.');
+            $document->update(['approved_by' => auth()->id(), 'approved_at' => now()]);
+            $label = 'Dokumen telah disetujui (approval).';
+        }
+
+        $document->comments()->create(['user_id' => auth()->id(), 'kind' => 'status', 'body' => $label]);
+
+        return back()->with('success', $label);
+    }
+
+    /**
+     * Hierarki pembuatan dokumen. Reviewer jatuh ke penyunting terakhir
+     * bila belum ada review eksplisit (dokumen lama).
+     */
+    private function trail(Document $document): array
+    {
+        $document->loadMissing(['user:id,name', 'reviewer:id,name', 'lastEditor:id,name', 'approver:id,name', 'signer:id,name', 'releaser:id,name']);
+
+        $reviewer   = $document->reviewer ?? $document->lastEditor;
+        $reviewedAt = $document->reviewed_at ?? ($document->reviewer ? null : $document->last_edited_at);
+
+        $step = fn (string $label, $user, $at) => [
+            'label' => $label,
+            'name'  => $user?->name,
+            'at'    => $at?->toIso8601String(),
+        ];
+
+        return [
+            $step('Dibuat', $document->user, $document->created_at),
+            $step('Direview', $reviewer, $reviewedAt),
+            $step('Disetujui (Approval)', $document->approver, $document->approved_at),
+            $step('Ditandatangani & Dirilis', $document->signer ?? $document->releaser, $document->signed_at ?? $document->released_at),
+        ];
+    }
+
+    /** Halaman publik hasil scan QR — tanpa login. */
+    public function verify(string $token): Response
+    {
+        $document = Document::where('verify_token', $token)->firstOrFail();
+        $types    = $this->types();
+
+        $isSigned   = (bool) $document->signed_at;
+        $isReleased = ($document->status ?? '') === 'released';
+
+        return Inertia::render('Documents/Verify', [
+            'document' => [
+                'number'     => $document->number,
+                'type_label' => $types[$document->type]['label'] ?? $document->type,
+                'doc_date'   => $document->doc_date->toDateString(),
+                'perihal'    => $document->meta['extra']['perihal'] ?? null,
+                'status'     => $document->status ?? 'on_review',
+                'is_valid'   => $isSigned && $isReleased,
+                'is_signed'  => $isSigned,
+                'released_at'=> $document->released_at?->toDateTimeString(),
+            ],
+            'trail'   => $this->trail($document),
+            'company' => $this->company(),
+        ]);
     }
 
     /**
@@ -337,6 +462,13 @@ class DocumentController extends Controller
             $meta['extra']['signed_by']      = auth()->user()->name;
             $meta['extra']['signed_at']      = now()->toDateTimeString();
             $document->meta = $meta;
+        }
+
+        // Penandatangan + token QR verifikasi (dibuat sekali, tetap sama setelahnya).
+        if ($validated['status'] === 'signed') {
+            $document->signed_by    = auth()->id();
+            $document->signed_at    = now();
+            $document->verify_token ??= Str::random(40);
         }
 
         if ($validated['status'] === 'released') {
@@ -443,11 +575,18 @@ class DocumentController extends Controller
                 'last_edited_by' => $document->lastEditor?->name,
                 'last_edited_at' => $document->last_edited_at?->toDateTimeString(),
                 'revision_count' => (int) $document->revision_count,
+                'attachment_url'  => $document->attachment_path ? Storage::disk('public')->url($document->attachment_path) : null,
+                'attachment_name' => $document->attachment_name,
+                'reviewed_at'     => $document->reviewed_at?->toDateTimeString(),
+                'approved_at'     => $document->approved_at?->toDateTimeString(),
+                'signed_at'       => $document->signed_at?->toDateTimeString(),
+                'verify_url'      => $document->verify_token ? route('documents.verify', $document->verify_token) : null,
             ],
             'config'      => $types[$document->type] ?? ['label' => $document->type],
             'company'     => $this->company(),
             'statuses'    => $this->statusOptions(),
             'can_release' => auth()->user()->hasRole('super_admin'),
+            'can_approve' => $this->canApprove(),
             'can_review'  => $this->canReview(),
             'can_edit'    => $this->canReview() && $this->isEditable($document),
             'comments'    => $document->comments->sortBy('created_at')->values()->map(fn ($c) => [
@@ -464,6 +603,9 @@ class DocumentController extends Controller
     {
         abort_unless($document->organization_id === auth()->user()->organization_id, 403);
 
+        if ($document->attachment_path) {
+            Storage::disk('public')->delete($document->attachment_path);
+        }
         $document->delete();
 
         return redirect()->route('documents.index')->with('success', 'Dokumen dihapus');

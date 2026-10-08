@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import Overview from './Overview';
 import AppLayout from '@/Layouts/AppLayout';
 import MapViewer from '@/Components/MapViewer.jsx';
 import { MapDashboardIcon, PalmPlantationIcon, IndustryIcon, JettyIcon } from '@/Components/AppIcons';
@@ -23,9 +24,9 @@ function StatCard({ label, value, unit, icon: Icon, color, sub, href, delay = 0 
             </div>
             <div className="min-w-0">
                 <p className="text-slate-400 text-xs font-medium">{label}</p>
-                <p className="text-white text-2xl font-bold mt-0.5 tabular leading-none animate-count-up">
+                <p className="text-white text-xl sm:text-2xl font-bold mt-0.5 tabular leading-none animate-count-up flex flex-wrap items-baseline gap-x-1">
                     {value}
-                    {unit && <span className="text-slate-500 text-sm font-medium ml-1">{unit}</span>}
+                    {unit && <span className="text-slate-500 text-sm font-medium">{unit}</span>}
                 </p>
                 {sub && <p className="text-slate-500 text-[11px] mt-1">{sub}</p>}
             </div>
@@ -40,7 +41,7 @@ function StatCard({ label, value, unit, icon: Icon, color, sub, href, delay = 0 
         : <div style={style} className={cls}>{inner}</div>;
 }
 
-export default function Dashboard({ palm_sources = [], unloading_points = [], jetty_points = [], pltu_locations = [], palm_summary = {} }) {
+export default function Dashboard({ palm_sources = [], unloading_points = [], jetty_points = [], pltu_locations = [], palm_summary = {}, overview = null }) {
     const sorted = [...palm_sources].sort((a, b) => Number(b.stock_volume) - Number(a.stock_volume));
     const adaData = palm_sources.length > 0 || unloading_points.length > 0 || jetty_points.length > 0;
 
@@ -48,7 +49,10 @@ export default function Dashboard({ palm_sources = [], unloading_points = [], je
         <>
             <Head title="Dashboard" />
             <AppLayout title="Dashboard">
+                {overview && <Overview overview={overview} summary={palm_summary} />}
+
                 {/* Statistik */}
+                <h2 className="text-slate-100 font-bold text-lg mb-3 mt-2">Ringkasan Rantai Pasok</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                     <StatCard label="Sumber Cangkang" value={fmtNum(palm_summary.source_count)} icon={PalmPlantationIcon}
                               color="emerald" href="/palm-oil-sources" delay={0} />

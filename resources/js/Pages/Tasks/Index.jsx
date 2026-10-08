@@ -40,7 +40,7 @@ export default function TasksIndex({
             </Head>
             <AppLayout title="Manajemen Tugas">
                 <div style={{ fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
-                    <div className="bg-white -m-3 sm:-m-5 lg:-m-6 p-4 sm:p-6 min-h-[calc(100vh-4rem)]">
+                    <div className="theme-native bg-white -m-3 sm:-m-5 lg:-m-6 p-4 sm:p-6 min-h-[calc(100vh-4rem)]">
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                             <div>
                                 <h1 className="text-2xl font-bold text-[rgba(0,0,0,0.95)] tracking-tight">Workspace Tugas PT GEP</h1>

@@ -27,15 +27,20 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login',     [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login',    [AuthController::class, 'login']);
-    Route::get('/register',  [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// ── Publik: verifikasi keabsahan dokumen via QR (tanpa login) ──
+Route::get('/verifikasi/{token}', [DocumentController::class, 'verify'])
+    ->where('token', '[A-Za-z0-9]{40}')
+    ->middleware('throttle:30,1')
+    ->name('documents.verify');
 
 // ── Protected ─────────────────────────────────────────────
 Route::middleware(['auth', 'active'])->group(function () {
 
     Route::get('/', [DashboardController::class, '__invoke'])->name('dashboard');
+    Route::inertia('/menu', 'Menu/Index')->name('menu');
 
     // Sumber Cangkang Sawit
     Route::middleware('permission:inventory.view')->prefix('palm-oil-sources')->group(function () {
@@ -122,6 +127,13 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Master Kreditur Pendanaan (Investor/Bank, kode bantu) + subledger kewajiban pendanaan
         Route::get('/creditors', [FundingCreditorController::class, 'index'])->middleware('permission:books.creditors.view')->name('books.creditors.index');
         Route::get('/creditors/{creditor}', [FundingCreditorController::class, 'show'])->middleware('permission:books.creditors.view')->name('books.creditors.show');
+        // Dokumen kreditur (kontrak, bukti transfer, foto jurnal, kwitansi) — upload/hapus dicek di controller
+        Route::middleware('permission:books.creditors.view')->group(function () {
+            Route::post('/creditors/{creditor}/documents',              [FundingCreditorController::class, 'uploadDocuments'])->name('books.creditors.documents.upload');
+            Route::get('/creditors/documents/{document}/view',          [FundingCreditorController::class, 'viewDocument'])->name('books.creditors.documents.view');
+            Route::get('/creditors/documents/{document}/download',      [FundingCreditorController::class, 'downloadDocument'])->name('books.creditors.documents.download');
+            Route::delete('/creditors/documents/{document}',            [FundingCreditorController::class, 'destroyDocument'])->name('books.creditors.documents.destroy');
+        });
         Route::middleware('role:super_admin')->group(function () {
             Route::post('/creditors',            [FundingCreditorController::class, 'store'])->name('books.creditors.store');
             Route::put('/creditors/{creditor}',  [FundingCreditorController::class, 'update'])->name('books.creditors.update');
@@ -164,6 +176,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/{document}/edit',     [DocumentController::class, 'edit'])->name('documents.edit');
             Route::put('/{document}',          [DocumentController::class, 'update'])->name('documents.update');
             Route::post('/{document}/comments',[DocumentCommentController::class, 'store'])->name('documents.comments.store');
+            Route::post('/{document}/endorse', [DocumentController::class, 'endorse'])->name('documents.endorse');
         });
         // Ubah status (Signed/Released/Cancelled) — khusus Super Admin (Direktur).
         Route::patch('/{document}/status', [DocumentController::class, 'setStatus'])->middleware('role:super_admin')->name('documents.status');

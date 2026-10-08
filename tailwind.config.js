@@ -1,6 +1,26 @@
 import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
 import defaultTheme from 'tailwindcss/defaultTheme';
+import plugin from 'tailwindcss/plugin';
+
+// Teks warna terang (200–400) dirancang untuk latar gelap; di tema terang digelapkan agar terbaca.
+const lightTextFix = plugin(({ addBase, theme }) => {
+    const colors = ['emerald', 'green', 'red', 'rose', 'amber', 'yellow', 'orange', 'blue', 'sky', 'cyan', 'teal', 'purple', 'violet', 'indigo', 'pink', 'lime', 'brand'];
+    const map = { 200: 700, 300: 700, 400: 600 };
+    const rules = {};
+    colors.forEach((c) => Object.entries(map).forEach(([from, to]) => {
+        const val = theme(`colors.${c}.${to}`);
+        if (!val) return;
+        rules[`.theme-light .text-${c}-${from}, .theme-light .hover\\:text-${c}-${from}:hover, .theme-light .group:hover .group-hover\\:text-${c}-${from}`] = { color: val };
+    }));
+    // Latar warna gelap transparan (mis. bg-green-900/40) → versi pastel di tema terang.
+    colors.forEach((c) => {
+        const tint = theme(`colors.${c}.50`);
+        if (!tint) return;
+        rules[[800, 900, 950].map((s) => `.theme-light [class*="bg-${c}-${s}"]:not(.theme-native *)`).join(', ')] = { backgroundColor: tint };
+    });
+    addBase(rules);
+});
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -41,20 +61,22 @@ export default {
                     800: '#104660',
                     900: '#10374c',
                 },
-                // Latar netral gelap dengan sedikit rona teal — elegan & senada logo
+                // Netral via variabel CSS — nilai per tema ada di app.css
+                // (:root = tema gelap asli, .theme-light = tema terang, .theme-native = kembali ke asli).
                 slate: {
-                    50: '#f8fbfc',
-                    100: '#f1f6f9',
-                    200: '#e1ebef',
-                    300: '#cbdae1',
-                    400: '#94acb8',
-                    500: '#607d8a',
-                    600: '#445d6a',
-                    700: '#304855',
-                    800: '#1a2d37',
-                    900: '#0d1c26',
-                    950: '#030b11',
+                    50: 'rgb(var(--slate-50) / <alpha-value>)',
+                    100: 'rgb(var(--slate-100) / <alpha-value>)',
+                    200: 'rgb(var(--slate-200) / <alpha-value>)',
+                    300: 'rgb(var(--slate-300) / <alpha-value>)',
+                    400: 'rgb(var(--slate-400) / <alpha-value>)',
+                    500: 'rgb(var(--slate-500) / <alpha-value>)',
+                    600: 'rgb(var(--slate-600) / <alpha-value>)',
+                    700: 'rgb(var(--slate-700) / <alpha-value>)',
+                    800: 'rgb(var(--slate-800) / <alpha-value>)',
+                    900: 'rgb(var(--slate-900) / <alpha-value>)',
+                    950: 'rgb(var(--slate-950) / <alpha-value>)',
                 },
+                white: 'rgb(var(--c-white) / <alpha-value>)',
                 // Palet khusus modul "Manajemen Tugas" (gaya Notion) — netral hangat + biru Notion
                 notion: {
                     blue: '#0075de',
@@ -169,5 +191,5 @@ export default {
             },
         },
     },
-    plugins: [forms, typography],
+    plugins: [forms, typography, lightTextFix],
 };

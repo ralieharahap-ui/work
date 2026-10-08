@@ -178,7 +178,8 @@ function mergeMeta(type, saved) {
 
 export default function DocumentsCreate({ type, config, company, prefill, next_number, document = null }) {
     const isEdit = !!document;
-    const { data, setData, post, put, processing, transform } = useForm({
+    const { data, setData, post, put, processing, transform, errors } = useForm({
+        attachment: null,
         type,
         doc_date: isEdit ? document.doc_date : new Date().toISOString().slice(0, 10),
         meta: isEdit ? mergeMeta(type, document.meta) : initMeta(type),
@@ -316,12 +317,21 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
     const submit = (e) => {
         e.preventDefault();
         // Sertakan ringkasan nilai (subtotal/ppn/total) ke meta tepat sebelum kirim.
-        transform((d) => ({
-            ...d,
-            meta: { ...d.meta, amounts: { ...d.meta.amounts, subtotal, ppn, total } },
-        }));
-        if (isEdit) put(route('documents.update', document.id));
-        else post(route('documents.store'));
+        transform((d) => {
+            const meta = { ...d.meta, amounts: { ...d.meta.amounts, subtotal, ppn, total } };
+            if (!d.attachment) {
+                const { attachment, ...rest } = d;
+                return { ...rest, meta };
+            }
+            // Multipart: meta dikirim sebagai JSON agar boolean/array kosong tidak berubah bentuk.
+            return { ...d, meta: JSON.stringify(meta), ...(isEdit ? { _method: 'put' } : {}) };
+        });
+        if (isEdit) {
+            if (data.attachment) post(route('documents.update', document.id), { forceFormData: true });
+            else put(route('documents.update', document.id));
+        } else {
+            post(route('documents.store'), { forceFormData: !!data.attachment });
+        }
     };
 
     const pageTitle = (isEdit ? 'Revisi ' : 'Buat ') + config.label;
@@ -638,7 +648,7 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
                                         {(prefill.accounts || []).map((a) => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
                                     </select>
                                 </div>
-                                <p className="sm:col-span-2 text-slate-500 text-xs">Jurnal: Debit akun terpilih & Kredit akun lawan sebesar {fmt(total)}. Default lazim: Debit Beban, Kredit 2-2400 Utang Pihak Berelasi.</p>
+                                <p className="sm:col-span-2 text-slate-500 text-xs">Jurnal: Debit akun terpilih & Kredit akun lawan sebesar {fmt(total)}. Default lazim: Debit beban terkait (mis. 61502 Perjalanan Dinas / 62003 Reimbursement), Kredit 21303 Hutang kepada Direksi / 21301 Hutang Pihak Berelasi.</p>
                             </div>
                         </div>
                     )}
@@ -850,6 +860,17 @@ export default function DocumentsCreate({ type, config, company, prefill, next_n
                     <div className="card">
                         <label className="label">Catatan (opsional)</label>
                         <textarea className="input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
+                    </div>
+
+                    <div className="card">
+                        <label className="label">Lampiran (opsional)</label>
+                        <input type="file" className="input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                            onChange={(e) => setData('attachment', e.target.files?.[0] ?? null)} />
+                        <p className="text-slate-500 text-xs mt-1">
+                            PDF / gambar / Word / Excel, maks 10 MB.
+                            {isEdit && document.attachment_name && <> Lampiran saat ini: <b className="text-slate-300">{document.attachment_name}</b> — pilih berkas baru untuk menggantinya.</>}
+                        </p>
+                        {errors.attachment && <p className="text-red-400 text-xs mt-1">{errors.attachment}</p>}
                     </div>
 
                     <div className="flex justify-end gap-2 print:hidden">

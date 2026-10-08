@@ -65,7 +65,7 @@ export default function TaxControl({ year, ppn_keluaran, ppn_masukan, ppn_wapu, 
                     <p className="text-slate-300 text-sm leading-relaxed">
                         <b>Mekanisme WAPU:</b> untuk customer berstatus WAPU (Wajib Pungut), PPN atas penjualan <i>tidak</i> masuk ke kas perusahaan —
                         kas yang diterima = total tagihan − PPN yang dipungut sendiri oleh WAPU. PPN tersebut dicatat sementara di akun clearing
-                        <b> {ppn_wapu.account?.code ?? '1-1400'} PPN Dipungut Wapu</b>, dan baru dianggap "setor" setelah Bukti Setor Pajak (SSP)
+                        <b> {ppn_wapu.account?.code ?? '11507'} PPN Dipungut Pemungut (WAPU)</b>, dan baru dianggap "setor" setelah Bukti Setor Pajak (SSP)
                         dari WAPU diterima &amp; dicocokkan lewat jurnal manual (debit akun Utang PPN Keluaran, kredit clearing).
                     </p>
                 </div>
