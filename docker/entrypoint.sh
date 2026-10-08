@@ -93,5 +93,9 @@ php artisan route:cache
 php artisan view:cache || true
 php artisan storage:link 2>/dev/null || true
 
+# 5) Perintah artisan di atas berjalan sebagai root — kembalikan kepemilikan ke www-data
+#    agar PHP-FPM bisa menulis cache/view/session (mis. cache permission Spatie).
+chown -R www-data:www-data storage bootstrap/cache
+
 echo "==> Siap. Menjalankan web server."
 exec "$@"
